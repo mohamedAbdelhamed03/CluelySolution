@@ -61,6 +61,6 @@ public sealed class JoinRoomHandler
         await _eventPublisher.PublishAsync(room.GetPendingEvents(), cancellationToken);
         room.ClearPendingEvents();
 
-        return Result.Success(new JoinRoomResult(participantId.Value));
+        return Result.Success(new JoinRoomResult(room.Id.Value, participantId.Value));
     }
 }

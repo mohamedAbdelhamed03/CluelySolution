@@ -18,6 +18,15 @@ public sealed class Card
         IsRevealed = false;
     }
 
+    // Internal constructor for rehydration
+    internal Card(CardPosition position, string word, CardOwnership ownership, bool isRevealed)
+    {
+        Position = position;
+        Word = word;
+        Ownership = ownership;
+        IsRevealed = isRevealed;
+    }
+
     public static Card Create(CardPosition position, string word, CardOwnership ownership) => new(position, word, ownership);
 
     public void Reveal() => IsRevealed = true;

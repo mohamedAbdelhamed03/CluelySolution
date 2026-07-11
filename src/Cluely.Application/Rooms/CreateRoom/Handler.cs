@@ -62,6 +62,9 @@ public sealed class CreateRoomHandler
         await _eventPublisher.PublishAsync(room.GetPendingEvents(), cancellationToken);
         room.ClearPendingEvents();
 
-        return Result.Success(new CreateRoomResult(roomId.Value, roomCode.Value));
+        return Result.Success(new CreateRoomResult(
+            roomId.Value,
+            roomCode.Value,
+            room.Participants.Single(p => p.IsHost).Id.Value));
     }
 }

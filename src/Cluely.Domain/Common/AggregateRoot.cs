@@ -16,6 +16,13 @@ public abstract class AggregateRoot<TId>
         Version = AggregateVersion.Initial();
     }
 
+    // Internal constructor for rehydration
+    internal AggregateRoot(TId id, AggregateVersion version)
+    {
+        Id = id;
+        Version = version;
+    }
+
     public IReadOnlyList<IDomainEvent> GetPendingEvents() => _pendingEvents.AsReadOnly();
 
     public void ClearPendingEvents() => _pendingEvents.Clear();

@@ -20,6 +20,16 @@ public sealed class Participant
         IsHost = isHost;
     }
 
+    // Internal constructor for rehydration
+    internal Participant(ParticipantId id, string nickname, Team team, Role role, bool isHost)
+    {
+        Id = id;
+        Nickname = nickname;
+        Team = team;
+        Role = role;
+        IsHost = isHost;
+    }
+
     public static Participant Create(ParticipantId id, string nickname, bool isHost = false) => new(id, nickname, isHost);
 
     public void SetTeam(Team team) => Team = team;

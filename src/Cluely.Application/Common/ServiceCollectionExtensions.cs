@@ -1,7 +1,15 @@
+using Cluely.Application.Auth.GetCurrentUser;
+using Cluely.Application.Auth.Login;
+using Cluely.Application.Auth.Logout;
+using Cluely.Application.Auth.Refresh;
+using Cluely.Application.Auth.Register;
 using Cluely.Application.Gameplay.EndTurn;
 using Cluely.Application.Gameplay.StartMatch;
 using Cluely.Application.Gameplay.SubmitClue;
 using Cluely.Application.Gameplay.SubmitGuess;
+using Cluely.Application.Queries.GetRoom;
+using Cluely.Application.Queries.GetRoomParticipants;
+using Cluely.Application.Queries.GetRoomProjection;
 using Cluely.Application.Rooms.AssignRole;
 using Cluely.Application.Rooms.AssignTeam;
 using Cluely.Application.Rooms.CreateRoom;
@@ -19,7 +27,6 @@ public static class ServiceCollectionExtensions
     {
         services.AddValidatorsFromAssembly(typeof(ServiceCollectionExtensions).Assembly);
 
-        // Rooms Handlers
         services.AddTransient<CreateRoomHandler>();
         services.AddTransient<JoinRoomHandler>();
         services.AddTransient<LeaveRoomHandler>();
@@ -27,11 +34,20 @@ public static class ServiceCollectionExtensions
         services.AddTransient<AssignRoleHandler>();
         services.AddTransient<SelectDictionaryHandler>();
 
-        // Gameplay Handlers
         services.AddTransient<StartMatchHandler>();
         services.AddTransient<SubmitClueHandler>();
         services.AddTransient<SubmitGuessHandler>();
         services.AddTransient<EndTurnHandler>();
+
+        services.AddTransient<GetRoomHandler>();
+        services.AddTransient<GetRoomProjectionHandler>();
+        services.AddTransient<GetRoomParticipantsHandler>();
+
+        services.AddTransient<RegisterUserHandler>();
+        services.AddTransient<LoginUserHandler>();
+        services.AddTransient<RefreshTokenHandler>();
+        services.AddTransient<LogoutUserHandler>();
+        services.AddTransient<GetCurrentUserHandler>();
 
         return services;
     }

@@ -42,6 +42,30 @@ public sealed class Room : AggregateRoot<RoomId>
         AddDomainEvent(new RoomCreated(id, code, host.Id, host.Nickname));
     }
 
+    // Internal constructor for rehydration
+    internal Room(
+        RoomId id,
+        RoomCode code,
+        AggregateVersion version,
+        RoomState state,
+        IEnumerable<Participant> participants,
+        DictionaryReference? dictionary,
+        Board? board,
+        Turn? currentTurn,
+        Team? winningTeam,
+        Team startingTeam
+    ) : base(id, version)
+    {
+        Code = code;
+        State = state;
+        _participants.AddRange(participants);
+        Dictionary = dictionary;
+        Board = board;
+        CurrentTurn = currentTurn;
+        WinningTeam = winningTeam;
+        StartingTeam = startingTeam;
+    }
+
     public static Room Create(RoomId id, RoomCode code, string hostNickname)
     {
         var hostId = ParticipantId.New();

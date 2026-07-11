@@ -20,6 +20,15 @@ public sealed class Turn
         GuessesUsed = 0;
     }
 
+    // Internal constructor for rehydration
+    internal Turn(int number, Team activeTeam, Clue? clue, int guessesUsed)
+    {
+        Number = number;
+        ActiveTeam = activeTeam;
+        Clue = clue;
+        GuessesUsed = guessesUsed;
+    }
+
     public static Turn Start(int number, Team activeTeam) => new(number, activeTeam);
 
     public void SubmitClue(Clue clue)

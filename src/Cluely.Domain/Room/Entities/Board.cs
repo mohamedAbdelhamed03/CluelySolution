@@ -12,7 +12,7 @@ public sealed class Board
     public int RedRemaining { get; private set; }
     public int BlueRemaining { get; private set; }
 
-    private Board(IEnumerable<Card> cards, int redRemaining, int blueRemaining)
+    internal Board(IEnumerable<Card> cards, int redRemaining, int blueRemaining)
     {
         _cards.AddRange(cards);
         RedRemaining = redRemaining;

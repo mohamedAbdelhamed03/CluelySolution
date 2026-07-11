@@ -47,6 +47,8 @@ Read Engineering Checklist
         ↓
 Understand Existing Code
         ↓
+Plan Implementation
+        ↓
 Implement
         ↓
 Self Review
@@ -76,6 +78,12 @@ Read:
 * Software Design
 * Technical Design
 * Previous implementation review
+* [Simplicity Principles](simplicity-principles.md)
+* [Refactoring Policy](refactoring-policy.md)
+* [Implementation Planning Standard](implementation-planning-standard.md)
+* [Implementation Decision Log](implementation-decision-log.md)
+* [Definition of Done](definition-of-done.md)
+* [Technical Debt Policy](technical-debt-policy.md)
 * Engineering Checklist
 
 Never rely on memory.
@@ -83,6 +91,14 @@ Never rely on memory.
 Never assume.
 
 Never reinterpret.
+
+---
+
+## Step 1.5 — Plan Implementation
+
+Before writing any code, create a brief implementation plan following the [Implementation Planning Standard](implementation-planning-standard.md).
+
+Answer all planning questions, define success criteria, and assess complexity.
 
 ---
 

@@ -1,12 +1,13 @@
 using System.Text.Json;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
 using Cluely.Application.Common;
 using Cluely.Domain.Common;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 namespace Cluely.Infrastructure.Middleware;
 
-public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<ExceptionHandlingMiddleware> logger)
+public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<ExceptionHandlingMiddleware> logger)
 {
     public async Task InvokeAsync(HttpContext context)
     {
@@ -16,31 +17,78 @@ public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Exception
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "An unhandled exception occurred");
-            await HandleExceptionAsync(context, ex);
+            var statusCode = MapStatusCode(ex);
+            if (statusCode >= StatusCodes.Status500InternalServerError)
+            {
+                logger.LogError(ex, "Unhandled server exception for {Method} {Path}", context.Request.Method, context.Request.Path);
+            }
+            else
+            {
+                logger.LogWarning(
+                    ex,
+                    "Request rejected with status {StatusCode} for {Method} {Path}",
+                    statusCode,
+                    context.Request.Method,
+                    context.Request.Path);
+            }
+
+            await WriteProblemDetailsAsync(context, ex, statusCode);
         }
     }
 
-    private static Task HandleExceptionAsync(HttpContext context, Exception exception)
+    private static int MapStatusCode(Exception exception)
     {
-        var statusCode = exception switch
+        return exception switch
         {
+            UnauthorizedAccessException => StatusCodes.Status401Unauthorized,
+            ParticipantBindingNotFoundException => StatusCodes.Status403Forbidden,
             DomainException => StatusCodes.Status400BadRequest,
             Cluely.Application.Common.ApplicationException => StatusCodes.Status400BadRequest,
             _ => StatusCodes.Status500InternalServerError
         };
+    }
 
+    private static string MapErrorCode(Exception exception)
+    {
+        return exception switch
+        {
+            ParticipantBindingNotFoundException => ParticipantBindingNotFoundException.ErrorCode,
+            UnauthorizedAccessException => "Unauthorized",
+            DomainException domainException => domainException.GetType().Name,
+            Cluely.Application.Common.ApplicationException applicationException => applicationException.GetType().Name,
+            _ => "UnexpectedError"
+        };
+    }
+
+    private static Task WriteProblemDetailsAsync(HttpContext context, Exception exception, int statusCode)
+    {
         context.Response.ContentType = "application/problem+json";
         context.Response.StatusCode = statusCode;
 
-        var problemDetails = new
+        var correlationId = context.Items.TryGetValue(CorrelationIdConstants.ItemKey, out var value)
+            ? value as string ?? Guid.NewGuid().ToString()
+            : Guid.NewGuid().ToString();
+
+        var problemDetails = new ProblemDetails
         {
-            Title = "An error occurred",
+            Title = statusCode switch
+            {
+                StatusCodes.Status401Unauthorized => "Unauthorized",
+                StatusCodes.Status403Forbidden => "Forbidden",
+                StatusCodes.Status400BadRequest => "Bad Request",
+                _ => "An error occurred"
+            },
             Status = statusCode,
-            Detail = exception.Message
+            Type = "https://tools.ietf.org/html/rfc7807",
+            Detail = exception.Message,
+            Instance = context.Request.Path,
+            Extensions =
+            {
+                ["code"] = MapErrorCode(exception),
+                ["correlationId"] = correlationId
+            }
         };
 
-        var json = JsonSerializer.Serialize(problemDetails);
-        return context.Response.WriteAsync(json);
+        return context.Response.WriteAsync(JsonSerializer.Serialize(problemDetails));
     }
 }
