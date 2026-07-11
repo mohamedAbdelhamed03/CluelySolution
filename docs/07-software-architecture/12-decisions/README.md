@@ -27,6 +27,7 @@
 | [ADR-008](ADR-008-dictionary-content-architecture.md) | Dictionary & Content Architecture | Accepted |
 | [ADR-009](ADR-009-participant-lifecycle-presence-session-continuity.md) | Participant Lifecycle, Presence & Session Continuity | Accepted |
 | [ADR-010](ADR-010-command-query-strategy.md) | Command / Query Strategy Architecture | Accepted |
+| [ADR-011](ADR-011-content-platform-ownership-publication-versioning-sharing.md) | Content Platform — Ownership, Publication, Versioning & Sharing | Accepted |
 
 > **ADR-000** is the mandatory terminology reference for every ADR and architecture/design/
 > implementation document. Though numbered 000, it was authored after ADR-001 (it standardizes the
