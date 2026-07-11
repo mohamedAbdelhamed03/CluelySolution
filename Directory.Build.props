@@ -1,0 +1,24 @@
+<Project>
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <NoWarn>$(NoWarn);NU1903;NU1605</NoWarn>
+  </PropertyGroup>
+  
+  <PropertyGroup Condition="'$(IsTestProject)' == 'true'">
+    <IsPackable>false</IsPackable>
+    <IsPublishable>false</IsPublishable>
+  </PropertyGroup>
+  
+  <PropertyGroup Condition="'$(IsTestProject)' != 'true'">
+    <VersionPrefix>1.0.0</VersionPrefix>
+    <VersionSuffix>alpha</VersionSuffix>
+    <Authors>Cluely Team</Authors>
+    <Company>Cluely</Company>
+    <Product>Cluely</Product>
+  </PropertyGroup>
+</Project>

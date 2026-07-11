@@ -1,0 +1,6 @@
+@Cluely.Api_HostAddress = http://localhost:5240
+
+GET {{Cluely.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

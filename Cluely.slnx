@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Cluely.Api/Cluely.Api.csproj" />
+    <Project Path="src/Cluely.Application/Cluely.Application.csproj" />
+    <Project Path="src/Cluely.Domain/Cluely.Domain.csproj" />
+    <Project Path="src/Cluely.Infrastructure/Cluely.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Cluely.ArchitectureTests/Cluely.ArchitectureTests.csproj" />
+    <Project Path="tests/Cluely.IntegrationTests/Cluely.IntegrationTests.csproj" />
+    <Project Path="tests/Cluely.UnitTests/Cluely.UnitTests.csproj" />
+  </Folder>
+</Solution>
