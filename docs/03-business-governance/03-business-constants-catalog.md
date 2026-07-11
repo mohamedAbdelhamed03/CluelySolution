@@ -226,6 +226,24 @@ These carry an **allowed range**; changing within range never affects rules ([AD
 - **Where Used:** Dictionary publish/select/start.
 - **Related:** BR-GS-3 · V-DICT-2 · INV-D2 · [14](../02-business-analysis/13-dictionary-management.md).
 
+### CONST-DICTIONARY-MAX-WORDS
+- **Meaning:** Maximum words a Dictionary Version (or Draft) may contain. **Default:** `1000`. **Range:** `25–10000`.
+- **Reason:** Bound authoring/import size for predictable validation and storage; generous for themed packs. Operational tunable — never affects gameplay (a Board still draws exactly 25).
+- **Where Used:** Content Platform word management, import, publish validation.
+- **Related:** V-CONTENT-4 · [Content Platform Feature Spec §9](../15-content-platform/02-feature-specification.md#9-validation-rules).
+
+### CONST-WORD-MIN-LENGTH
+- **Meaning:** Minimum length of a single word (after normalization). **Default:** `1`. **Range:** `1–3`.
+- **Reason:** A word must have at least one character.
+- **Where Used:** Content Platform word validation.
+- **Related:** V-CONTENT-5 · [Content Platform Feature Spec §9](../15-content-platform/02-feature-specification.md#9-validation-rules).
+
+### CONST-WORD-MAX-LENGTH
+- **Meaning:** Maximum length of a single word (after normalization). **Default:** `40`. **Range:** `20–100`.
+- **Reason:** Prevent overflow/display abuse while accommodating long compound terms; the reference game uses short single words.
+- **Where Used:** Content Platform word validation.
+- **Related:** V-CONTENT-5 · [Content Platform Feature Spec §9](../15-content-platform/02-feature-specification.md#9-validation-rules).
+
 ---
 
 ## 9. Single-Source Policy
@@ -247,3 +265,4 @@ These carry an **allowed range**; changing within range never affects rules ([AD
 | Version | Date | Change |
 |---------|------|--------|
 | 1.0 | 2026-07-01 | Initial catalog; consolidates constants and operational parameters from [00 — README](../_meta/00-canonical-constants-and-index.md) as the single numeric source. |
+| 1.1 | 2026-07-11 | Content Platform Slice 00: ratified three operational constants — `CONST-DICTIONARY-MAX-WORDS`, `CONST-WORD-MIN-LENGTH`, `CONST-WORD-MAX-LENGTH` (§8). Tunable; no gameplay impact. |

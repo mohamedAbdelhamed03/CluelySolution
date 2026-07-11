@@ -20,6 +20,7 @@
    - [Dictionary & Localization](#46-dictionary--localization)
    - [Identity & Session](#47-identity--session)
    - [Documentation Artefacts](#48-documentation-artefacts)
+   - [Content Platform](#49-content-platform)
 5. [Deprecated & Synonym Index](#5-deprecated--synonym-index)
 6. [Revision History](#6-revision-history)
 
@@ -255,6 +256,44 @@ Each entry includes: **Definition**, **Related Documents**, **Related Rules**, *
 - **Definition:** The Given/When/Then conditions that confirm a User Story is satisfied.
 - **Related Documents:** 05. **Notes:** Testable by QA. **Synonyms:** AC. **Deprecated:** —
 
+### 4.9 Content Platform
+
+*Post-MVP feature terms, governed by [ADR-011](../07-software-architecture/12-decisions/ADR-011-content-platform-ownership-publication-versioning-sharing.md)
+and the [Content Platform Feature Specification](../15-content-platform/02-feature-specification.md).
+"Dictionary" and "Dictionary Version" (§4.6) keep their definitions; here they generalize to owned, typed content.*
+
+#### Draft
+- **Definition:** The single mutable working copy of a Dictionary's words; the only editable content.
+- **Related Documents:** ADR-011, Feature Spec §5. **Notes:** Never used by a match. **Synonyms:** — **Deprecated:** —
+
+#### Dictionary Owner
+- **Definition:** The single account with exclusive authoring, visibility, sharing, and lifecycle rights over a Dictionary.
+- **Related Documents:** ADR-011 §6.3. **Notes:** Exactly one per Dictionary (BR-CONTENT-001). **Synonyms:** Owner. **Deprecated:** —
+
+#### Visibility
+- **Definition:** A Dictionary's controlled exposure: Private (default), Shared, or Public (Organization reserved).
+- **Related Documents:** Feature Spec §7. **Notes:** Private content never leaks. **Synonyms:** — **Deprecated:** —
+
+#### Content Type
+- **Definition:** A Dictionary's classification by ownership: Official or User (more added additively).
+- **Related Documents:** ADR-011 §10. **Notes:** One-per-region (DM-C1) applies to Official only. **Synonyms:** — **Deprecated:** —
+
+#### Share
+- **Definition:** Granting Viewer access to a Dictionary's current published Version to specific accounts; revocable.
+- **Related Documents:** Feature Spec §11. **Notes:** Recipients cannot edit or re-share. **Synonyms:** — **Deprecated:** —
+
+#### Clone
+- **Definition:** Creating a new, independent, owner-held Dictionary seeded from a Version's words plus a provenance reference.
+- **Related Documents:** Feature Spec §11. **Notes:** Independent of its source. **Synonyms:** — **Deprecated:** —
+
+#### Publish
+- **Definition:** Validating a Draft and snapshotting it into a new immutable Version.
+- **Related Documents:** Feature Spec §8. **Notes:** Corrections are new Versions, never in-place edits. **Synonyms:** — **Deprecated:** —
+
+#### Moderation Review
+- **Definition:** The Public-only lifecycle gate approving a published Version for discoverability.
+- **Related Documents:** Feature Spec §18. **Notes:** Distinct from future user "reviews". **Synonyms:** Review. **Deprecated:** —
+
 ---
 
 ## 5. Deprecated & Synonym Index
@@ -276,3 +315,4 @@ Each entry includes: **Definition**, **Related Documents**, **Related Rules**, *
 | Version | Date | Change |
 |---------|------|--------|
 | 1.0 | 2026-07-01 | Initial canonical glossary; supersedes the short glossary in [01 §1.11](../01-product-discovery/01-business-requirements.md#111-business-glossary); resolves F-VAL-01 (Match vs Game) and F-VAL-04 (Red/Blue). |
+| 1.1 | 2026-07-11 | Content Platform Slice 00: added §4.9 Content Platform terms (Draft, Dictionary Owner, Visibility, Content Type, Share, Clone, Publish, Moderation Review). No change to existing entries. |

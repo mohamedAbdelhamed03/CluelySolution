@@ -52,6 +52,7 @@ of category.
 | H | **Ownership & Access** | Owner, authority vs responsibility, reader, role filtering, hidden information. |
 | I | **Quality & Governance** | Quality attribute, architectural driver, trade-off, principle, constraint, assumption, risk, debt, fitness function. |
 | J | **Evolution & Deployment** | Evolution, deployment unit/topology (conceptual), future-auth seam. |
+| K | **Content Platform** | Dictionary, Draft, Version, Owner (content), Visibility, Share, Clone, Publish, Review, Moderate, Content Type. |
 
 ---
 
@@ -520,6 +521,56 @@ here. Where this ADR uses them architecturally, it defers to that glossary.)*
 > Connectivity & Identity); **Presence** = the current connectivity status derived from the session
 > (connected/disconnected/grace). Session is the *what*; presence is the *observable status*.
 
+### K — Content Platform
+
+*Introduced by [ADR-011](ADR-011-content-platform-ownership-publication-versioning-sharing.md) (§21 mandate).
+These terms name the **authoring** side of content; the gameplay-facing product terms **Dictionary** and
+**Dictionary Version** remain governed by the [Business Glossary](../../03-business-governance/01-business-glossary.md).*
+
+#### Dictionary (Content Platform sense)
+- **Definition:** The owner-scoped aggregate that holds one mutable **Draft**, an immutable **Version** history, and its metadata, visibility, and share grants; the authoring consistency boundary.
+- **Purpose:** The single unit of ownership and change for authored content.
+- **Related ADRs:** ADR-008, ADR-011 (§6.2). **Related Documents:** [Feature Spec](../../15-content-platform/02-feature-specification.md).
+- **Common Misunderstandings:** Not the room-side pinned content; a room references a **Version identity**, never the Dictionary aggregate.
+- **Example Usage:** "A Dictionary has exactly one owner and at most one Draft (AI-CP-1/3)."
+
+#### Draft
+- **Definition:** The **single mutable** working copy of a Dictionary's words; the only editable content.
+- **Purpose:** Localizes all mutation to one place so published Versions can stay immutable.
+- **Related ADRs:** ADR-011 (AI-CP-3). **Common Misunderstandings:** A Draft is **never** pinned by a match (FF-CP-002).
+- **Example Usage:** "Editing published content produces a new Draft, never an in-place change."
+
+#### Version (Content Platform sense)
+- **Definition:** An **immutable, uniquely-identified** published snapshot of a Dictionary's words plus immutable version metadata.
+- **Purpose:** Reproducibility and safe evolution; the unit a match pins.
+- **Related ADRs:** ADR-008 (AI-CONTENT-9/14), ADR-011 (AI-CP-4/5). **Common Misunderstandings:** "Version identity" (machine, unique) ≠ "version label" (human, incrementing).
+- **Example Usage:** "The room pins the current published Version's identity."
+
+#### Owner (content)
+- **Definition:** The single account with exclusive authoring/visibility/lifecycle rights over a Dictionary; the content-domain **OwnerId** wraps the durable account identity from the auth seam.
+- **Purpose:** Unambiguous authority over change (AI-CP-1). **Common Misunderstandings:** Distinct from **Authority** (which decides a room's outcomes); an Owner authors content, not gameplay.
+- **Example Usage:** "Only the Owner may publish or share a Dictionary."
+
+#### Visibility
+- **Definition:** The controlled exposure of a Dictionary — **Private** (default) / **Shared** / **Public** (Organization reserved).
+- **Purpose:** Deliberate, enforced exposure so private content never leaks (AI-CP-6). **Related Documents:** [Feature Spec §7](../../15-content-platform/02-feature-specification.md#7-visibility).
+- **Example Usage:** "Public requires a published Version and review approval."
+
+#### Content Type
+- **Definition:** The classification of a Dictionary by ownership — **Official** / **User** (further types added additively). All types share one lifecycle, immutability, versioning, and pinning (AI-CP-14).
+- **Purpose:** Extensibility without redesign; confines one-per-region (DM-C1) to **Official** only.
+- **Example Usage:** "User dictionaries are owner-scoped and many-per-owner; DM-C1 applies to Official."
+
+#### Share / Clone
+- **Definition:** **Share** grants Viewer access of the current Version to specific accounts (revocable); **Clone** creates a new, independent owner-held Dictionary seeded from a Version's words plus a non-retaining provenance reference.
+- **Purpose:** Controlled reuse without shared mutable state (AI-CP-8). **Common Misunderstandings:** A clone is not a live link to its source.
+- **Example Usage:** "Revoking a share ends future access but never a pinned match."
+
+#### Publish / Review / Moderate
+- **Definition:** **Publish** validates a Draft and snapshots it into an immutable Version; **Review** is the Public-only discoverability gate; **Moderate** applies lifecycle actions (block/retire) to shared/public content.
+- **Purpose:** Safe evolution and containment — acting on lifecycle **state**, never on published words or a running match (AI-CP-13).
+- **Example Usage:** "Moderation blocks a Version's discoverability without editing it."
+
 ---
 
 ## 4. Mandatory Terms — Coverage Check
@@ -731,3 +782,4 @@ and review artifact.
 | Version | Date | Change |
 |---------|------|--------|
 | 1.0 | 2026-07-02 | Initial canonical architecture vocabulary; reconciles terms from Discovery and ADR-001; no new decisions. |
+| 1.1 | 2026-07-11 | Added **Category K — Content Platform** (§2/§3) folding in the ADR-011 §21 vocabulary (Dictionary/Draft/Version/Owner/Visibility/Content Type/Share/Clone/Publish/Review/Moderate). No decision change; terminology only. |

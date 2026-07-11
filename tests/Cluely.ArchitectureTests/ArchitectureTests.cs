@@ -25,6 +25,24 @@ public class ArchitectureTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    public void Content_Namespace_Should_Follow_Domain_Dependency_Rules()
+    {
+        var result = Types.InAssembly(DomainAssembly)
+            .That()
+            .ResideInNamespace("Cluely.Domain.Content")
+            .ShouldNot()
+            .HaveDependencyOnAny(
+                ApplicationAssembly.GetName().Name!,
+                InfrastructureAssembly.GetName().Name!,
+                ApiAssembly.GetName().Name!,
+                "Microsoft.AspNetCore",
+                "Microsoft.EntityFrameworkCore")
+            .GetResult();
+
+        result.IsSuccessful.Should().BeTrue();
+    }
+
+    [Fact]
     public void Domain_Should_Not_Have_Dependency_On_AspNetCore()
     {
         var result = Types.InAssembly(DomainAssembly)
