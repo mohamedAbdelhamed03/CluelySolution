@@ -1,3 +1,5 @@
+using Cluely.Domain.Common;
+using Cluely.Domain.Room.Entities;
 using Cluely.Domain.Room.ValueObjects;
 
 namespace Cluely.Domain.Room.Events;

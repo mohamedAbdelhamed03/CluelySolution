@@ -1,4 +1,4 @@
-using Cluely.Domain.Room.Events;
+using Cluely.Domain.Common;
 
 namespace Cluely.Application.Common.Ports;
 

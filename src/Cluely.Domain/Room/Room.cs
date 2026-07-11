@@ -20,15 +20,12 @@ public enum GamePhase
     AwaitingGuess
 }
 
-public sealed class Room
+public sealed class Room : AggregateRoot<RoomId>
 {
-    private readonly List<IDomainEvent> _pendingEvents = [];
     private readonly List<Participant> _participants = [];
 
-    public RoomId Id { get; }
     public RoomCode Code { get; }
     public RoomState State { get; private set; }
-    public AggregateVersion Version { get; private set; }
     public IReadOnlyList<Participant> Participants => _participants.AsReadOnly();
     public DictionaryReference? Dictionary { get; private set; }
     public Board? Board { get; private set; }
@@ -37,14 +34,12 @@ public sealed class Room
     public Team StartingTeam { get; private set; } = Team.Red;
     public ParticipantId HostId => _participants.Single(p => p.IsHost).Id;
 
-    private Room(RoomId id, RoomCode code, Participant host)
+    private Room(RoomId id, RoomCode code, Participant host) : base(id)
     {
-        Id = id;
         Code = code;
         State = RoomState.Lobby;
-        Version = AggregateVersion.Initial();
         _participants.Add(host);
-        _pendingEvents.Add(new RoomCreated(id, code, host.Id, host.Nickname));
+        AddDomainEvent(new RoomCreated(id, code, host.Id, host.Nickname));
     }
 
     public static Room Create(RoomId id, RoomCode code, string hostNickname)
@@ -53,9 +48,6 @@ public sealed class Room
         var host = Participant.Create(hostId, hostNickname, isHost: true);
         return new Room(id, code, host);
     }
-
-    public IReadOnlyList<IDomainEvent> GetPendingEvents() => _pendingEvents.AsReadOnly();
-    public void ClearPendingEvents() => _pendingEvents.Clear();
 
     public void Join(ParticipantId participantId, string nickname)
     {
@@ -76,7 +68,7 @@ public sealed class Room
 
         var participant = Participant.Create(participantId, nickname, isHost: false);
         _participants.Add(participant);
-        _pendingEvents.Add(new PlayerJoined(Id, participantId, nickname));
+        AddDomainEvent(new PlayerJoined(Id, participantId, nickname));
         IncrementVersion();
     }
 
@@ -89,19 +81,19 @@ public sealed class Room
         }
 
         _participants.Remove(participant);
-        _pendingEvents.Add(new PlayerLeft(Id, participantId, "Left voluntarily"));
+        AddDomainEvent(new PlayerLeft(Id, participantId, "Left voluntarily"));
 
         if (participant.IsHost && _participants.Any())
         {
             var newHost = _participants.First();
             newHost.SetHost(true);
-            _pendingEvents.Add(new HostTransferred(Id, participantId, newHost.Id));
+            AddDomainEvent(new HostTransferred(Id, participantId, newHost.Id));
         }
 
         if (!_participants.Any())
         {
             State = RoomState.Closed;
-            _pendingEvents.Add(new RoomClosed(Id, "Room is empty"));
+            AddDomainEvent(new RoomClosed(Id, "Room is empty"));
         }
 
         IncrementVersion();
@@ -122,7 +114,7 @@ public sealed class Room
 
         var previousTeam = participant.Team;
         participant.SetTeam(team);
-        _pendingEvents.Add(new TeamChanged(Id, participantId, previousTeam, team));
+        AddDomainEvent(new TeamChanged(Id, participantId, previousTeam, team));
         IncrementVersion();
     }
 
@@ -150,14 +142,14 @@ public sealed class Room
 
         var previousRole = participant.Role;
         participant.SetRole(role);
-        _pendingEvents.Add(new RoleChanged(Id, participantId, previousRole, role));
+        AddDomainEvent(new RoleChanged(Id, participantId, previousRole, role));
         IncrementVersion();
     }
 
     public void SelectDictionary(DictionaryReference dictionary)
     {
         Dictionary = dictionary;
-        _pendingEvents.Add(new DictionarySelected(Id, dictionary));
+        AddDomainEvent(new DictionarySelected(Id, dictionary));
         IncrementVersion();
     }
 
@@ -181,7 +173,7 @@ public sealed class Room
         ValidateMatchConfiguration();
 
         State = RoomState.InProgress;
-        _pendingEvents.Add(new GameStarted(Id));
+        AddDomainEvent(new GameStarted(Id));
 
         GenerateBoard();
         StartTurn();
@@ -226,7 +218,7 @@ public sealed class Room
 
         Board = Board.Create(cardData);
         StartingTeam = ownerships[0] == CardOwnership.Red ? Team.Red : Team.Blue;
-        _pendingEvents.Add(new BoardGenerated(Id, cardData, StartingTeam));
+        AddDomainEvent(new BoardGenerated(Id, cardData.ToList(), StartingTeam));
     }
 
     public void SubmitClue(ParticipantId requestorId, Clue clue)
@@ -261,7 +253,7 @@ public sealed class Room
         }
 
         CurrentTurn.SubmitClue(clue);
-        _pendingEvents.Add(new ClueSubmitted(Id, CurrentTurn.ActiveTeam, clue));
+        AddDomainEvent(new ClueSubmitted(Id, CurrentTurn.ActiveTeam, clue));
         IncrementVersion();
     }
 
@@ -307,9 +299,9 @@ public sealed class Room
             throw new GuessLimitReachedException("Guess limit reached");
         }
 
-        _pendingEvents.Add(new GuessSubmitted(Id, requestorId, position));
+        AddDomainEvent(new GuessSubmitted(Id, requestorId, position));
         var revealedCard = Board.RevealCard(position);
-        _pendingEvents.Add(new CardRevealed(Id, position, revealedCard.Word, revealedCard.Ownership, Board.RedRemaining, Board.BlueRemaining));
+        AddDomainEvent(new CardRevealed(Id, position, revealedCard.Word, revealedCard.Ownership, Board.RedRemaining, Board.BlueRemaining));
         CurrentTurn.IncrementGuessCount();
 
         // Check for game end
@@ -408,7 +400,7 @@ public sealed class Room
     private void EndTurn(Team team, string reason)
     {
         if (CurrentTurn == null) return;
-        _pendingEvents.Add(new TurnEnded(Id, team, reason));
+        AddDomainEvent(new TurnEnded(Id, team, reason));
         StartTurn();
         IncrementVersion();
     }
@@ -420,19 +412,14 @@ public sealed class Room
             : (CurrentTurn.ActiveTeam == Team.Red ? Team.Blue : Team.Red);
         var turnNumber = CurrentTurn == null ? 1 : CurrentTurn.Number + 1;
         CurrentTurn = Turn.Start(turnNumber, nextTeam);
-        _pendingEvents.Add(new TurnStarted(Id, nextTeam, turnNumber));
+        AddDomainEvent(new TurnStarted(Id, nextTeam, turnNumber));
     }
 
     private void FinishGame(Team? winningTeam, string reason)
     {
         State = RoomState.Finished;
         WinningTeam = winningTeam;
-        _pendingEvents.Add(new GameFinished(Id, winningTeam, reason));
+        AddDomainEvent(new GameFinished(Id, winningTeam, reason));
         IncrementVersion();
-    }
-
-    private void IncrementVersion()
-    {
-        Version = Version.Next();
     }
 }
