@@ -2,7 +2,7 @@
 
 Format: *As a [actor], I want [capability], so that [benefit].* Each story has acceptance
 criteria (AC) in Given/When/Then form. Actors: **Host**, **Player**, **Spymaster**,
-**Operative**. Stories reference rules in [Business Rules](03-business-rules.md).
+**Operative**. Stories reference rules in [Business Rules](02-business-rules.md).
 
 ---
 

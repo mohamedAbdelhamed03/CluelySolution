@@ -22,7 +22,7 @@ word dictionary, until one team wins or loses per the canonical rules. The syste
 real-time game state, role-based visibility (Spymasters see card ownership; Operatives do
 not), turn flow, validation, disconnect/reconnect, host migration, and room lifecycle.
 
-**Excluded** (see [BRD §1.6](01-BRD.md#16-out-of-scope)): authentication, accounts,
+**Excluded** (see [BRD §1.6](../01-product-discovery/01-business-requirements.md#16-out-of-scope)): authentication, accounts,
 monetization, AI, ranking, chat/voice, achievements, new modes, custom word lists.
 
 ## 2.3 Product overview
@@ -62,7 +62,7 @@ match holds exactly one game role (Spymaster or Operative) on exactly one team.
 
 ## 2.6 Assumptions and dependencies
 
-- See [BRD §1.8](01-BRD.md#18-assumptions). Key dependency: a curated, versioned set of
+- See [BRD §1.8](../01-product-discovery/01-business-requirements.md#18-assumptions). Key dependency: a curated, versioned set of
   regional **word dictionaries** must exist and be selectable.
 - Real-time bidirectional communication between server and clients is available.
 - Clients are responsible only for presentation and intent submission, never for rule
@@ -70,7 +70,7 @@ match holds exactly one game role (Spymaster or Operative) on exactly one team.
 
 ## 2.7 Constraints
 
-See [BRD §1.7](01-BRD.md#17-constraints). Notably: no authentication; one gameplay; only
+See [BRD §1.7](../01-product-discovery/01-business-requirements.md#17-constraints). Notably: no authentication; one gameplay; only
 the dictionary is localized; rules are language-independent; future-auth-ready.
 
 ---
@@ -78,8 +78,8 @@ the dictionary is localized; rules are language-independent; future-auth-ready.
 ## 2.8 Functional Requirements
 
 Requirements use **FR-x**. "The system shall" is implied. Each maps to detailed flows in
-[Functional Requirements](04-functional-requirements.md) and rules in
-[Business Rules](03-business-rules.md).
+[Functional Requirements](03-functional-requirements.md) and rules in
+[Business Rules](02-business-rules.md).
 
 ### Room management
 - **FR-1** Allow a Player to create a room, becoming its Host, and generate a unique room code.
@@ -156,7 +156,7 @@ Requirements use **FR-x**. "The system shall" is implied. Each maps to detailed 
 ## 2.10 Business Rules
 
 Business rules are enumerated authoritatively in
-[Business Rules Document](03-business-rules.md). The SRS references them; it does not
+[Business Rules Document](02-business-rules.md). The SRS references them; it does not
 duplicate them. Every functional requirement above is governed by the corresponding rules
 (e.g., FR-16 ↔ board composition rules, FR-27/28 ↔ win/loss rules).
 

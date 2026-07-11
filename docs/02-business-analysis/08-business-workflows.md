@@ -1,8 +1,8 @@
 # 9. Business Workflows — Cluely
 
 End-to-end process flows. Each workflow lists actor, trigger, steps, decision points, and
-outcomes. Rule references point to [Business Rules](03-business-rules.md); features to
-[Functional Requirements](04-functional-requirements.md).
+outcomes. Rule references point to [Business Rules](02-business-rules.md); features to
+[Functional Requirements](03-functional-requirements.md).
 
 ---
 
@@ -177,4 +177,4 @@ WF-01 Create → WF-02 Join (×N) → WF-03 Teams → WF-04 Roles → WF-05 Star
    → WF-11 Finish → (WF-10 reconfigure) → WF-05 Start (rematch) ...
 ```
 Resilience flows (WF-13/WF-14/WF-15) may interleave at any point without corrupting the
-match state, per the state machines in [State Machines](08-state-machines.md).
+match state, per the state machines in [State Machines](07-state-machines.md).

@@ -2,7 +2,7 @@
 
 Complete lifecycle states and transitions for every stateful entity. Each transition lists
 its **trigger**, **guard/condition**, and **resulting state**, with the governing rule from
-[Business Rules](03-business-rules.md). States are exhaustive; no transition is omitted.
+[Business Rules](02-business-rules.md). States are exhaustive; no transition is omitted.
 
 ---
 

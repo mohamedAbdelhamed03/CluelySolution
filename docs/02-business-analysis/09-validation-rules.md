@@ -1,8 +1,8 @@
 # 10. Validation Rules — Cluely
 
 Every validation, with its **trigger**, **reason**, **expected behavior**, and **business
-outcome**. Validation IDs are referenced from [Functional Requirements](04-functional-requirements.md)
-and tie back to [Business Rules](03-business-rules.md). All validations are
+outcome**. Validation IDs are referenced from [Functional Requirements](03-functional-requirements.md)
+and tie back to [Business Rules](02-business-rules.md). All validations are
 language-independent.
 
 ---

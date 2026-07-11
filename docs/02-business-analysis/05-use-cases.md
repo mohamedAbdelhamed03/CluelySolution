@@ -2,7 +2,7 @@
 
 Each use case includes Primary Actor, Goal, Trigger, Preconditions, Main Success Scenario
 (MSS), Alternative Scenarios, Exception Flows, and Postconditions. References point to
-[Business Rules](03-business-rules.md) and [Functional Requirements](04-functional-requirements.md).
+[Business Rules](02-business-rules.md) and [Functional Requirements](03-functional-requirements.md).
 
 ---
 

@@ -26,7 +26,7 @@ Legend: **MUST** = mandatory; **MUST NOT** = forbidden; **MAY** = allowed option
 | BR-JR-1 | A Player MUST provide a valid room code and a nickname to join. |
 | BR-JR-2 | The room code MUST correspond to a **live, non-expired** room, else join is rejected. |
 | BR-JR-3 | A nickname MUST be **unique within the room** (case-insensitive, trimmed); duplicates are rejected. |
-| BR-JR-4 | A nickname MUST be non-empty and within the allowed length/character bounds (see [Validation](10-validation-rules.md)). |
+| BR-JR-4 | A nickname MUST be non-empty and within the allowed length/character bounds (see [Validation](09-validation-rules.md)). |
 | BR-JR-5 | A Player MUST NOT join a room that is **full** (at the room's max capacity). |
 | BR-JR-6 | A Player MUST NOT join a room whose **match is in progress** as an active game participant. (MVP: late joiners wait for the next match; they do not enter an in-progress match.) |
 | BR-JR-6a | A waiting member of an in-progress match MUST NOT receive any board, key, clue, or card data while that match is running; they receive only room membership and lifecycle information. This preserves information fairness (no spectator view) per NFR-3. They begin receiving game state only when the next match starts and they are a participant. |
@@ -286,7 +286,7 @@ Legend: **MUST** = mandatory; **MUST NOT** = forbidden; **MAY** = allowed option
 
 ## 3.26 State transitions (summary index)
 
-Complete state machines are in [State Machines](08-state-machines.md). The authoritative
+Complete state machines are in [State Machines](07-state-machines.md). The authoritative
 transitions are:
 
 - **Room:** Lobby → In-Match → Post-Match → (Lobby | Expired).

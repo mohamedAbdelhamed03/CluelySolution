@@ -2,8 +2,8 @@
 
 Each feature is specified with Purpose, Actors, Preconditions, Main Flow, Alternative
 Flows, Postconditions, governing Business Rules, Validation Rules, Failure Scenarios, and
-Exceptions. Rule references point to [Business Rules](03-business-rules.md) and
-[Validation Rules](10-validation-rules.md).
+Exceptions. Rule references point to [Business Rules](02-business-rules.md) and
+[Validation Rules](09-validation-rules.md).
 
 ---
 
