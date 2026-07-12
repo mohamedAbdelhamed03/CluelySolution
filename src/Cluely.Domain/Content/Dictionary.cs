@@ -17,6 +17,7 @@ public sealed class Dictionary : AggregateRoot<DictionaryId>
     public DictionaryState State { get; private set; }
     public DictionaryMetadata Metadata { get; private set; }
     public DictionaryDraft Draft { get; }
+    public int DraftWordCount => Draft.Words.Count;
     public Provenance? Provenance { get; }
     public VersionId? CurrentVersionId { get; private set; }
     public VersionLabel NextVersionLabel { get; private set; }

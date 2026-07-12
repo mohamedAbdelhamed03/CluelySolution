@@ -639,4 +639,56 @@ public class ArchitectureTests(ITestOutputHelper testOutputHelper)
         repositoryType!.IsInterface.Should().BeTrue();
         repositoryType.Namespace.Should().Be("Cluely.Application.Common.Ports.Content");
     }
+
+    [Fact]
+    public void Content_Authoring_Handlers_Should_Not_Reference_DictionaryVersion()
+    {
+        var result = Types.InAssembly(ApplicationAssembly)
+            .That()
+            .ResideInNamespace("Cluely.Application.Content")
+            .And()
+            .HaveNameEndingWith("Handler")
+            .ShouldNot()
+            .HaveDependencyOn("Cluely.Domain.Content.Entities.DictionaryVersion")
+            .GetResult();
+
+        result.IsSuccessful.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Content_Authoring_Handlers_Should_Not_Mutate_WordSet_Directly()
+    {
+        var result = Types.InAssembly(ApplicationAssembly)
+            .That()
+            .ResideInNamespace("Cluely.Application.Content")
+            .And()
+            .HaveNameEndingWith("Handler")
+            .ShouldNot()
+            .HaveDependencyOn("Cluely.Domain.Content.ValueObjects.WordSet")
+            .GetResult();
+
+        result.IsSuccessful.Should().BeTrue();
+    }
+
+    [Fact]
+    public void DictionaryDraft_Should_Not_Expose_Public_Mutators()
+    {
+        var publicMethods = typeof(Domain.Content.Entities.DictionaryDraft)
+            .GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly)
+            .Where(method => !method.IsSpecialName)
+            .Select(method => method.Name)
+            .ToList();
+
+        publicMethods.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void WordSet_Should_Expose_ReadOnly_Word_Collection()
+    {
+        typeof(Domain.Content.ValueObjects.WordSet)
+            .GetProperty(nameof(Domain.Content.ValueObjects.WordSet.Words))!
+            .PropertyType
+            .Should()
+            .Be(typeof(IReadOnlyList<Domain.Content.ValueObjects.Word>));
+    }
 }

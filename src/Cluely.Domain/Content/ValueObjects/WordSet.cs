@@ -38,12 +38,14 @@ public sealed class WordSet
     public WordSet AddWords(IEnumerable<string> rawWords)
     {
         var next = _words.ToList();
+        var existingValues = new HashSet<string>(_words.Select(word => word.Value), StringComparer.Ordinal);
         var addedInBatch = new HashSet<string>(StringComparer.Ordinal);
 
         foreach (var raw in rawWords)
         {
             var word = Word.FromRaw(raw);
-            if (_words.Any(existing => existing.Value == word.Value))
+
+            if (existingValues.Contains(word.Value))
             {
                 throw new DuplicateWordException($"Duplicate word '{word.Value}'.");
             }

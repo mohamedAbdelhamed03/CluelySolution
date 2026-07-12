@@ -38,8 +38,8 @@ public sealed class Word : ValueObject
     public static string Normalize(string raw)
     {
         var trimmed = raw.Trim();
-        return string.Join(' ', trimmed.Split(' ', StringSplitOptions.RemoveEmptyEntries))
-            .ToLowerInvariant();
+        var segments = trimmed.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+        return string.Join(' ', segments).ToLowerInvariant();
     }
 
     protected override IEnumerable<object> GetEqualityComponents()
