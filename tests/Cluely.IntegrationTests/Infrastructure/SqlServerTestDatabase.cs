@@ -1,5 +1,7 @@
 using Cluely.Infrastructure.Persistence;
+using Cluely.Infrastructure.Persistence.DictionaryStore;
 using Cluely.Infrastructure.Persistence.RoomCustody;
+using Cluely.Infrastructure.ReadModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -46,6 +48,41 @@ public sealed class SqlServerTestDatabase : IAsyncLifetime
         }
 
         return new SqlRoomCustodyTestContext(_serviceProvider);
+    }
+
+    public DictionaryStoreTestContext CreateDictionaryContext()
+    {
+        if (_serviceProvider is null)
+        {
+            throw new InvalidOperationException("Test database has not been initialized.");
+        }
+
+        return new DictionaryStoreTestContext(_serviceProvider);
+    }
+}
+
+public sealed class DictionaryStoreTestContext : IAsyncDisposable
+{
+    private readonly IServiceScope _scope;
+
+    public DictionaryStoreTestContext(IServiceProvider serviceProvider)
+    {
+        _scope = serviceProvider.CreateScope();
+        DbContext = _scope.ServiceProvider.GetRequiredService<CluelyDbContext>();
+        Repository = new SqlDictionaryRepository(DbContext);
+        ReadModel = new DictionaryReadModelProvider(DbContext);
+    }
+
+    public CluelyDbContext DbContext { get; }
+
+    public SqlDictionaryRepository Repository { get; }
+
+    public DictionaryReadModelProvider ReadModel { get; }
+
+    public ValueTask DisposeAsync()
+    {
+        _scope.Dispose();
+        return ValueTask.CompletedTask;
     }
 }
 
