@@ -9,6 +9,7 @@ using Cluely.Application.Content.BulkAddWords;
 using Cluely.Application.Content.CancelDeleteDictionary;
 using Cluely.Application.Content.CreateDictionary;
 using Cluely.Application.Content.DeleteDictionary;
+using Cluely.Application.Content.PublishDictionary;
 using Cluely.Application.Content.RemoveWord;
 using Cluely.Application.Content.ReplaceWord;
 using Cluely.Application.Content.ReportDictionary;
@@ -73,6 +74,8 @@ public static class ServiceCollectionExtensions
         services.AddTransient<ReplaceWordHandler>();
         services.AddTransient<BulkAddWordsHandler>();
         services.AddTransient<ValidateDraftHandler>();
+
+        services.AddTransient<PublishDictionaryHandler>();
 
         services.AddTransient<ReportDictionaryHandler>();
 
