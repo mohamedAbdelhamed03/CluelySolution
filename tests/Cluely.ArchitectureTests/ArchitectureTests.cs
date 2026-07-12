@@ -88,6 +88,57 @@ public class ArchitectureTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    public void Content_Discovery_Handlers_Should_Not_Depend_On_Write_Ports()
+    {
+        var result = Types.InAssembly(ApplicationAssembly)
+            .That()
+            .ResideInNamespace("Cluely.Application.Content.Discovery")
+            .ShouldNot()
+            .HaveDependencyOnAny(
+                "Cluely.Application.Common.Ports.IDomainEventPublisher",
+                "Cluely.Application.Common.Ports.Content.IDictionaryRepository")
+            .GetResult();
+
+        result.IsSuccessful.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Read_Models_Should_Not_Expose_Domain_Entities()
+    {
+        var result = Types.InAssembly(ApplicationAssembly)
+            .That()
+            .ResideInNamespace("Cluely.Application.Common.ReadModels")
+            .ShouldNot()
+            .HaveDependencyOnAny(
+                "Cluely.Domain.Content.Entities",
+                "Cluely.Domain.Room.Entities")
+            .GetResult();
+
+        result.IsSuccessful.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Read_Models_Should_Not_Expose_Mutable_Collections()
+    {
+        var mutableCollectionDefinitions = new[]
+        {
+            typeof(List<>), typeof(IList<>), typeof(ICollection<>),
+            typeof(HashSet<>), typeof(ISet<>), typeof(Dictionary<,>), typeof(IDictionary<,>)
+        };
+
+        var offenders = ApplicationAssembly.GetTypes()
+            .Where(type => type.Namespace == "Cluely.Application.Common.ReadModels")
+            .SelectMany(type => type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly))
+            .Where(property => property.PropertyType.IsArray
+                || (property.PropertyType.IsGenericType
+                    && mutableCollectionDefinitions.Contains(property.PropertyType.GetGenericTypeDefinition())))
+            .Select(property => $"{property.DeclaringType!.Name}.{property.Name}")
+            .ToList();
+
+        offenders.Should().BeEmpty();
+    }
+
+    [Fact]
     public void Domain_Should_Not_Have_Dependency_On_AspNetCore()
     {
         var result = Types.InAssembly(DomainAssembly)
