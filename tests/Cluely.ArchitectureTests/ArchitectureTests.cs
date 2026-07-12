@@ -738,6 +738,69 @@ public class ArchitectureTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    public void Content_Moderation_Handlers_Should_Depend_On_IContentModeratorAccessor()
+    {
+        var moderationHandlers = new[]
+        {
+            "ApproveReviewHandler",
+            "RejectReviewHandler",
+            "BlockVersionHandler",
+            "UnblockVersionHandler",
+            "RetireVersionHandler"
+        };
+
+        foreach (var handlerName in moderationHandlers)
+        {
+            var handlerType = ApplicationAssembly.GetType($"Cluely.Application.Content.{handlerName.Replace("Handler", "")}.{handlerName}");
+            if (handlerType is null)
+            {
+                var namespaceName = handlerName switch
+                {
+                    "ApproveReviewHandler" => "ApproveReview",
+                    "RejectReviewHandler" => "RejectReview",
+                    "BlockVersionHandler" => "BlockVersion",
+                    "UnblockVersionHandler" => "UnblockVersion",
+                    "RetireVersionHandler" => "RetireVersion",
+                    _ => throw new InvalidOperationException()
+                };
+                handlerType = ApplicationAssembly.GetType($"Cluely.Application.Content.{namespaceName}.{handlerName}");
+            }
+
+            handlerType.Should().NotBeNull();
+            handlerType!.GetConstructors()
+                .SelectMany(constructor => constructor.GetParameters())
+                .Select(parameter => parameter.ParameterType)
+                .Should()
+                .Contain(typeof(Application.Common.Ports.Identity.IContentModeratorAccessor));
+        }
+    }
+
+    [Fact]
+    public void Content_Moderation_Handlers_Should_Not_Reference_WordSet()
+    {
+        var result = Types.InAssembly(ApplicationAssembly)
+            .That()
+            .ResideInNamespace("Cluely.Application.Content")
+            .And()
+            .HaveNameEndingWith("Handler")
+            .And()
+            .HaveNameMatching("ApproveReview|RejectReview|BlockVersion|UnblockVersion|RetireVersion|ReportDictionary|PublishDictionary|SubmitForReview")
+            .ShouldNot()
+            .HaveDependencyOn("Cluely.Domain.Content.ValueObjects.WordSet")
+            .GetResult();
+
+        result.IsSuccessful.Should().BeTrue();
+    }
+
+    [Fact]
+    public void DictionaryReported_Should_Implement_IContentDomainEvent()
+    {
+        typeof(Domain.Content.Events.DictionaryReported)
+            .Should()
+            .Implement<Domain.Common.IContentDomainEvent>();
+    }
+
+    [Fact]
     public void Content_Domain_Should_Not_Depend_On_Reflection()
     {
         var result = Types.InAssembly(DomainAssembly)

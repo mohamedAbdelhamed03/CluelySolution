@@ -1,0 +1,3 @@
+namespace Cluely.Application.Content.ReportDictionary;
+
+public sealed record ReportDictionaryResult(Guid DictionaryId);

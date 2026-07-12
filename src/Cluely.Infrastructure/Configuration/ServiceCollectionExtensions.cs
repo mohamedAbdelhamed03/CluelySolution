@@ -1,5 +1,6 @@
 using Cluely.Application.Common.Ports;
 using Cluely.Application.Common.Ports.Content;
+using Cluely.Application.Common.Ports.Identity;
 using Cluely.Infrastructure.Content;
 using Cluely.Infrastructure.Identity;
 using Cluely.Infrastructure.ReadModels;
@@ -35,6 +36,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IRoomCustody, SqlRoomCustody>();
         services.AddScoped<IRoomReadModelProvider, RoomReadModelProvider>();
         services.AddScoped<IDictionaryRepository, UnavailableDictionaryRepository>();
+        services.AddScoped<IContentModeratorAccessor, UnavailableContentModeratorAccessor>();
 
         services.AddSingleton<IConnectionRegistry, ConnectionRegistry>();
         services.AddSingleton<IProjectionBuilder, ProjectionBuilder>();

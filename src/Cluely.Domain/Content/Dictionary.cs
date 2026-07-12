@@ -10,6 +10,7 @@ public sealed class Dictionary : AggregateRoot<DictionaryId>
 {
     private readonly List<DictionaryVersion> _versions = [];
     private readonly HashSet<ShareGrant> _shareGrants = [];
+    private DictionaryState? _stateBeforePendingDeletion;
 
     public OwnerId Owner { get; }
     public ContentType ContentType { get; }
@@ -210,10 +211,23 @@ public sealed class Dictionary : AggregateRoot<DictionaryId>
         return report;
     }
 
-    public VersionId Publish(OwnerId actor, VersionId versionId, DateTime publishedAt)
+    public PublishResult Publish(OwnerId actor, VersionId versionId, DateTime publishedAt)
     {
         EnsureOwner(actor);
         EnsureAuthoringAllowed();
+
+        var existing = _versions.SingleOrDefault(version => version.Id == versionId);
+        if (existing is not null)
+        {
+            return new PublishResult(versionId, existing.Label.Value, existing.Words.Count);
+        }
+
+        if (Draft.Words.Count > DictionaryValidation.MaxWords)
+        {
+            Draft.MarkDraft();
+            throw new DraftTooLargeException(
+                $"Draft exceeds maximum of {DictionaryValidation.MaxWords} words; found {Draft.Words.Count}.");
+        }
 
         var report = DraftValidationReport.FromWordSet(Draft.Words);
         if (!report.IsValid)
@@ -248,7 +262,7 @@ public sealed class Dictionary : AggregateRoot<DictionaryId>
             publishedVersion.Label,
             publishedVersion.Words.Count));
         IncrementVersion();
-        return versionId;
+        return new PublishResult(versionId, publishedVersion.Label.Value, publishedVersion.Words.Count);
     }
 
     public void SetVisibility(OwnerId actor, Visibility visibility)
@@ -346,6 +360,7 @@ public sealed class Dictionary : AggregateRoot<DictionaryId>
             throw new DictionaryLifecycleException("Deletion has already been requested or completed.");
         }
 
+        _stateBeforePendingDeletion = State;
         State = DictionaryState.PendingDeletion;
         AddDomainEvent(new DictionaryDeletionRequested(Id));
         IncrementVersion();
@@ -360,8 +375,21 @@ public sealed class Dictionary : AggregateRoot<DictionaryId>
             throw new DictionaryLifecycleException("No pending deletion to cancel.");
         }
 
-        State = DictionaryState.Active;
+        State = _stateBeforePendingDeletion ?? DictionaryState.Active;
+        _stateBeforePendingDeletion = null;
         AddDomainEvent(new DictionaryDeletionCancelled(Id));
+        IncrementVersion();
+    }
+
+    public void Report(OwnerId reporter)
+    {
+        if (Visibility == Visibility.Private)
+        {
+            throw new VisibilityTransitionException(
+                "Only shared or public dictionaries can be reported.");
+        }
+
+        AddDomainEvent(new DictionaryReported(Id, reporter));
         IncrementVersion();
     }
 
@@ -401,9 +429,9 @@ public sealed class Dictionary : AggregateRoot<DictionaryId>
         IncrementVersion();
     }
 
-    public void ApproveReview(OwnerId actor, VersionId versionId)
+    public void ApproveReview(ModeratorId moderator, VersionId versionId)
     {
-        EnsureOwner(actor);
+        ArgumentNullException.ThrowIfNull(moderator);
 
         var version = GetRequiredVersion(versionId);
         if (version.LifecycleState != VersionLifecycleState.PendingReview)
@@ -417,9 +445,9 @@ public sealed class Dictionary : AggregateRoot<DictionaryId>
         IncrementVersion();
     }
 
-    public void RejectReview(OwnerId actor, VersionId versionId)
+    public void RejectReview(ModeratorId moderator, VersionId versionId)
     {
-        EnsureOwner(actor);
+        ArgumentNullException.ThrowIfNull(moderator);
 
         var version = GetRequiredVersion(versionId);
         if (version.LifecycleState != VersionLifecycleState.PendingReview)
@@ -433,9 +461,9 @@ public sealed class Dictionary : AggregateRoot<DictionaryId>
         IncrementVersion();
     }
 
-    public void BlockVersion(OwnerId actor, VersionId versionId)
+    public void BlockVersion(ModeratorId moderator, VersionId versionId)
     {
-        EnsureOwner(actor);
+        ArgumentNullException.ThrowIfNull(moderator);
 
         var version = GetRequiredVersion(versionId);
         if (version.LifecycleState is VersionLifecycleState.Retired or VersionLifecycleState.Deprecated)
@@ -449,9 +477,9 @@ public sealed class Dictionary : AggregateRoot<DictionaryId>
         IncrementVersion();
     }
 
-    public void UnblockVersion(OwnerId actor, VersionId versionId)
+    public void UnblockVersion(ModeratorId moderator, VersionId versionId)
     {
-        EnsureOwner(actor);
+        ArgumentNullException.ThrowIfNull(moderator);
 
         var version = GetRequiredVersion(versionId);
         if (version.LifecycleState != VersionLifecycleState.Blocked)
@@ -468,7 +496,17 @@ public sealed class Dictionary : AggregateRoot<DictionaryId>
     public void RetireVersion(OwnerId actor, VersionId versionId)
     {
         EnsureOwner(actor);
+        RetireVersionCore(versionId);
+    }
 
+    public void RetireVersion(ModeratorId moderator, VersionId versionId)
+    {
+        ArgumentNullException.ThrowIfNull(moderator);
+        RetireVersionCore(versionId);
+    }
+
+    private void RetireVersionCore(VersionId versionId)
+    {
         var version = GetRequiredVersion(versionId);
         if (version.LifecycleState == VersionLifecycleState.Retired)
         {

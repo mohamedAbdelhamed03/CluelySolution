@@ -77,3 +77,7 @@ public sealed record VersionUnblocked(
 public sealed record VersionRetired(
     DictionaryId DictionaryId,
     VersionId VersionId) : IContentDomainEvent;
+
+public sealed record DictionaryReported(
+    DictionaryId DictionaryId,
+    OwnerId ReporterId) : IContentDomainEvent;

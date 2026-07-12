@@ -131,7 +131,7 @@ public sealed class DictionaryHardeningTests
         var versionId = VersionId.New();
         DictionaryTestData.ValidateAndPublish(dictionary, owner, versionId, DateTime.UtcNow);
 
-        Action action = () => dictionary.ApproveReview(owner, versionId);
+        Action action = () => dictionary.ApproveReview(ModeratorId.From(Guid.NewGuid()), versionId);
 
         action.Should().Throw<VersionLifecycleException>();
     }
@@ -291,12 +291,103 @@ public sealed class DictionaryHardeningTests
         dictionary.SubmitVersionForReview(owner, versionId);
         dictionary.ClearPendingEvents();
 
-        dictionary.RejectReview(owner, versionId);
+        dictionary.RejectReview(ModeratorId.From(Guid.NewGuid()), versionId);
 
         dictionary.GetVersion(versionId).LifecycleState.Should().Be(VersionLifecycleState.Published);
         dictionary.CurrentVersionId.Should().Be(versionId);
         dictionary.GetPendingEvents().Should().ContainSingle()
             .Which.Should().BeOfType<ReviewRejected>();
+    }
+
+    [Fact]
+    public void CancelDeletion_FromArchived_ShouldRestoreArchived()
+    {
+        var owner = OwnerId.From(Guid.NewGuid());
+        var dictionary = CreateDictionary(owner);
+        dictionary.Archive(owner);
+        dictionary.RequestDeletion(owner);
+
+        dictionary.CancelDeletion(owner);
+
+        dictionary.State.Should().Be(DictionaryState.Archived);
+    }
+
+    [Fact]
+    public void Publish_WithDuplicateVersionId_ShouldBeIdempotent()
+    {
+        var owner = OwnerId.From(Guid.NewGuid());
+        var dictionary = CreateDictionary(owner);
+        dictionary.AddWords(owner, DictionaryTestData.ValidWordBatch(DictionaryValidation.MinWords));
+        var versionId = VersionId.New();
+        DictionaryTestData.ValidateAndPublish(dictionary, owner, versionId, DateTime.UtcNow);
+        dictionary.ClearPendingEvents();
+        var aggregateVersionBeforeReplay = dictionary.Version;
+        var versionCountBeforeReplay = dictionary.Versions.Count;
+
+        var replayed = dictionary.Publish(owner, versionId, DateTime.UtcNow);
+
+        replayed.VersionId.Should().Be(versionId);
+        dictionary.Versions.Count.Should().Be(versionCountBeforeReplay);
+        dictionary.Version.Should().Be(aggregateVersionBeforeReplay);
+        dictionary.GetPendingEvents().Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Publish_WithTooManyWords_ShouldThrowDraftTooLargeException()
+    {
+        var owner = OwnerId.From(Guid.NewGuid());
+        var dictionary = CreateDictionary(owner);
+        dictionary.AddWords(owner, DictionaryTestData.ValidWordBatch(DictionaryValidation.MaxWords + 1));
+        dictionary.ClearPendingEvents();
+        var aggregateVersionBeforeFailure = dictionary.Version;
+
+        Action action = () => dictionary.Publish(owner, VersionId.New(), DateTime.UtcNow);
+
+        action.Should().Throw<DraftTooLargeException>();
+        dictionary.Versions.Should().BeEmpty();
+        dictionary.Version.Should().Be(aggregateVersionBeforeFailure);
+        dictionary.GetPendingEvents().Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Report_OnPrivateDictionary_ShouldThrow()
+    {
+        var reporter = OwnerId.From(Guid.NewGuid());
+        var dictionary = CreateDictionary();
+
+        Action action = () => dictionary.Report(reporter);
+
+        action.Should().Throw<VisibilityTransitionException>();
+    }
+
+    [Fact]
+    public void Report_OnSharedDictionary_ShouldRaiseDictionaryReported()
+    {
+        var owner = OwnerId.From(Guid.NewGuid());
+        var dictionary = CreateDictionary(owner);
+        dictionary.SetVisibility(owner, Visibility.Shared);
+        dictionary.ClearPendingEvents();
+        var reporter = OwnerId.From(Guid.NewGuid());
+
+        dictionary.Report(reporter);
+
+        dictionary.GetPendingEvents().OfType<DictionaryReported>().Should().ContainSingle()
+            .Which.ReporterId.Should().Be(reporter);
+    }
+
+    [Fact]
+    public void ValidateDraft_ShouldNotAdvanceAggregateVersion()
+    {
+        var owner = OwnerId.From(Guid.NewGuid());
+        var dictionary = CreateDictionary(owner);
+        dictionary.AddWords(owner, DictionaryTestData.ValidWordBatch(DictionaryValidation.MinWords));
+        dictionary.ClearPendingEvents();
+        var aggregateVersionBeforeValidation = dictionary.Version;
+
+        dictionary.ValidateDraft(owner);
+
+        dictionary.Version.Should().Be(aggregateVersionBeforeValidation);
+        dictionary.GetPendingEvents().Should().BeEmpty();
     }
 
     private static Dictionary CreateDictionary(OwnerId? owner = null)
