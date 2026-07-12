@@ -235,7 +235,7 @@ public sealed class DictionaryTests
         dictionary.SetVisibility(owner, Visibility.Public);
         dictionary.SubmitVersionForReview(owner, versionId);
 
-        dictionary.ApproveReview(owner, versionId);
+        dictionary.ApproveReview(ModeratorId.From(Guid.NewGuid()), versionId);
 
         dictionary.GetVersion(versionId).LifecycleState.Should().Be(VersionLifecycleState.Discoverable);
         dictionary.GetPendingEvents().OfType<ReviewApproved>().Should().ContainSingle();
@@ -250,14 +250,14 @@ public sealed class DictionaryTests
         var versionId = VersionId.New();
         DictionaryTestData.ValidateAndPublish(dictionary, owner, versionId, DateTime.UtcNow);
 
-        dictionary.BlockVersion(owner, versionId);
+        dictionary.BlockVersion(ModeratorId.From(Guid.NewGuid()), versionId);
         dictionary.CurrentVersionId.Should().BeNull();
 
-        dictionary.UnblockVersion(owner, versionId);
+        dictionary.UnblockVersion(ModeratorId.From(Guid.NewGuid()), versionId);
         dictionary.GetVersion(versionId).LifecycleState.Should().Be(VersionLifecycleState.PendingReview);
         dictionary.CurrentVersionId.Should().BeNull();
 
-        dictionary.ApproveReview(owner, versionId);
+        dictionary.ApproveReview(ModeratorId.From(Guid.NewGuid()), versionId);
         dictionary.CurrentVersionId.Should().Be(versionId);
     }
 
