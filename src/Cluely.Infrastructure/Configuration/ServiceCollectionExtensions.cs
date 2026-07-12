@@ -1,7 +1,6 @@
 using Cluely.Application.Common.Ports;
 using Cluely.Application.Common.Ports.Content;
 using Cluely.Application.Common.Ports.Identity;
-using Cluely.Infrastructure.Content;
 using Cluely.Infrastructure.Identity;
 using Cluely.Infrastructure.ReadModels;
 using Cluely.Infrastructure.Common;
@@ -11,6 +10,7 @@ using Cluely.Infrastructure.Delivery.Dispatch;
 using Cluely.Infrastructure.Delivery.Projections;
 using Cluely.Infrastructure.Delivery.Visibility;
 using Cluely.Infrastructure.Persistence;
+using Cluely.Infrastructure.Persistence.DictionaryStore;
 using Cluely.Infrastructure.Persistence.RoomCustody;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -35,7 +35,7 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IRoomCustody, SqlRoomCustody>();
         services.AddScoped<IRoomReadModelProvider, RoomReadModelProvider>();
-        services.AddScoped<IDictionaryRepository, UnavailableDictionaryRepository>();
+        services.AddScoped<IDictionaryRepository, SqlDictionaryRepository>();
         services.AddScoped<IDictionaryReadModelProvider, DictionaryReadModelProvider>();
         services.AddScoped<IContentModeratorAccessor, UnavailableContentModeratorAccessor>();
 
