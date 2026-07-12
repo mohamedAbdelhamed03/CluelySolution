@@ -493,4 +493,105 @@ public class ArchitectureTests(ITestOutputHelper testOutputHelper)
             .Should()
             .Contain(type => type.Name == nameof(Application.Common.ParticipantBindingNotFoundException));
     }
+
+    [Fact]
+    public void Content_Domain_Should_Not_Reference_Room_Or_Gameplay()
+    {
+        var result = Types.InAssembly(DomainAssembly)
+            .That()
+            .ResideInNamespace("Cluely.Domain.Content")
+            .ShouldNot()
+            .HaveDependencyOn("Cluely.Domain.Room")
+            .GetResult();
+
+        result.IsSuccessful.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Content_Domain_Should_Not_Reference_Infrastructure_Or_AspNetCore()
+    {
+        var infrastructure = Types.InAssembly(DomainAssembly)
+            .That()
+            .ResideInNamespace("Cluely.Domain.Content")
+            .ShouldNot()
+            .HaveDependencyOn("Cluely.Infrastructure")
+            .GetResult();
+
+        var aspNet = Types.InAssembly(DomainAssembly)
+            .That()
+            .ResideInNamespace("Cluely.Domain.Content")
+            .ShouldNot()
+            .HaveDependencyOn("Microsoft.AspNetCore")
+            .GetResult();
+
+        infrastructure.IsSuccessful.Should().BeTrue();
+        aspNet.IsSuccessful.Should().BeTrue();
+    }
+
+    [Fact]
+    public void DictionaryVersion_Should_Expose_No_Public_Mutators()
+    {
+        var publicMethods = typeof(Domain.Content.Entities.DictionaryVersion)
+            .GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly)
+            .Where(method => !method.IsSpecialName)
+            .Select(method => method.Name)
+            .ToList();
+
+        publicMethods.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Only_Dictionary_Aggregate_May_Create_DictionaryVersion_Instances()
+    {
+        var versionConstructors = typeof(Domain.Content.Entities.DictionaryVersion)
+            .GetConstructors(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+
+        versionConstructors.Should().NotContain(ctor => ctor.IsPublic);
+
+        typeof(Domain.Content.Dictionary)
+            .GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+            .Select(method => method.Name)
+            .Should()
+            .Contain("Publish");
+    }
+
+    [Fact]
+    public void Application_Should_Not_Reference_Infrastructure_Or_Api()
+    {
+        var infrastructure = Types.InAssembly(ApplicationAssembly)
+            .ShouldNot()
+            .HaveDependencyOn(InfrastructureAssembly.GetName().Name!)
+            .GetResult();
+
+        var api = Types.InAssembly(ApplicationAssembly)
+            .ShouldNot()
+            .HaveDependencyOn(ApiAssembly.GetName().Name!)
+            .GetResult();
+
+        infrastructure.IsSuccessful.Should().BeTrue();
+        api.IsSuccessful.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Content_Handlers_Should_Not_Reference_Room_Aggregate()
+    {
+        var result = Types.InAssembly(ApplicationAssembly)
+            .That()
+            .ResideInNamespace("Cluely.Application.Content")
+            .ShouldNot()
+            .HaveDependencyOn("Cluely.Domain.Room")
+            .GetResult();
+
+        result.IsSuccessful.Should().BeTrue();
+    }
+
+    [Fact]
+    public void IDictionaryRepository_Should_Reside_In_Application_Ports()
+    {
+        var repositoryType = ApplicationAssembly.GetType("Cluely.Application.Common.Ports.Content.IDictionaryRepository");
+
+        repositoryType.Should().NotBeNull();
+        repositoryType!.IsInterface.Should().BeTrue();
+        repositoryType.Namespace.Should().Be("Cluely.Application.Common.Ports.Content");
+    }
 }

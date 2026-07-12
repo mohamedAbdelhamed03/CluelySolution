@@ -1,6 +1,6 @@
 using Cluely.Domain.Common;
 
-namespace Cluely.Domain.Room.ValueObjects;
+namespace Cluely.Domain.Common;
 
 public sealed class AggregateVersion : ValueObject
 {

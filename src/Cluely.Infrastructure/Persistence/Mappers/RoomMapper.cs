@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Cluely.Domain.Common;
 using Cluely.Domain.Room;
 using Cluely.Domain.Room.Entities;
 using Cluely.Domain.Room.Events;

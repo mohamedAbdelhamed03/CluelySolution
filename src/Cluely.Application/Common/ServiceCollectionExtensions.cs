@@ -3,6 +3,11 @@ using Cluely.Application.Auth.Login;
 using Cluely.Application.Auth.Logout;
 using Cluely.Application.Auth.Refresh;
 using Cluely.Application.Auth.Register;
+using Cluely.Application.Content.ArchiveDictionary;
+using Cluely.Application.Content.CreateDictionary;
+using Cluely.Application.Content.DeleteDictionary;
+using Cluely.Application.Content.RenameDictionary;
+using Cluely.Application.Content.RestoreDictionary;
 using Cluely.Application.Gameplay.EndTurn;
 using Cluely.Application.Gameplay.StartMatch;
 using Cluely.Application.Gameplay.SubmitClue;
@@ -48,6 +53,12 @@ public static class ServiceCollectionExtensions
         services.AddTransient<RefreshTokenHandler>();
         services.AddTransient<LogoutUserHandler>();
         services.AddTransient<GetCurrentUserHandler>();
+
+        services.AddTransient<CreateDictionaryHandler>();
+        services.AddTransient<RenameDictionaryHandler>();
+        services.AddTransient<ArchiveDictionaryHandler>();
+        services.AddTransient<DeleteDictionaryHandler>();
+        services.AddTransient<RestoreDictionaryHandler>();
 
         return services;
     }
