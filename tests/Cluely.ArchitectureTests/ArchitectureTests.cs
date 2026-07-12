@@ -832,4 +832,28 @@ public class ArchitectureTests(ITestOutputHelper testOutputHelper)
 
         result.IsSuccessful.Should().BeTrue();
     }
+
+    [Fact]
+    public void Application_Should_Not_Depend_On_ShareGrant()
+    {
+        // Only the Dictionary aggregate constructs ShareGrant; application handlers pass grantee ids.
+        var result = Types.InAssembly(ApplicationAssembly)
+            .ShouldNot()
+            .HaveDependencyOn("Cluely.Domain.Content.ValueObjects.ShareGrant")
+            .GetResult();
+
+        result.IsSuccessful.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Provenance_Should_Be_Immutable()
+    {
+        var settableProperties = typeof(Domain.Content.ValueObjects.Provenance)
+            .GetProperties(BindingFlags.Instance | BindingFlags.Public)
+            .Where(property => property.SetMethod is { IsPublic: true })
+            .Select(property => property.Name)
+            .ToList();
+
+        settableProperties.Should().BeEmpty();
+    }
 }
