@@ -21,7 +21,9 @@ public sealed class ShareGrant : ValueObject
 
     protected override IEnumerable<object> GetEqualityComponents()
     {
+        // Identity is the grantee: a dictionary has at most one grant per account (TD-001). The grant
+        // timestamp is informational and must not participate in equality, otherwise repeated shares of
+        // the same grantee would create duplicate grants and make revocation non-deterministic.
         yield return GranteeId;
-        yield return GrantedAt;
     }
 }
