@@ -1,6 +1,6 @@
 # Engineering Backlog
 
-Every implementation review updates this file. Last reviewed: **Slices 00–03 hardening, 2026-07-12**.
+Every implementation review updates this file. Last reviewed: **Slice 04 — Publishing & Moderation, 2026-07-12**.
 
 | Field | Description |
 |-------|-------------|
@@ -19,19 +19,19 @@ Every implementation review updates this file. Last reviewed: **Slices 00–03 h
 | TD-001 | ShareGrant equality | Slice 07 | Blocking | Open | — | — |
 | TD-002 | Visibility enumeration | Slice 06–07 | Required | Open | — | — |
 | TD-003 | Create idempotency race and ownership scope | Slice 10 | Blocking | Open | Enforce an atomic uniqueness boundary and scope replay lookup to the authenticated owner plus request fingerprint; the current key-only lookup can race and can return another owner's result if keys collide. | — |
-| TD-004 | Publish exception consistency | Slice 04 | Required | Open | — | — |
-| TD-005 | Moderator authorization | Slice 04 | Blocking | Open | — | — |
+| TD-004 | Publish exception consistency | Slice 04 | Required | Closed | `Publish` now throws `DraftTooLargeException` when the draft exceeds `MaxWords`, and `DraftTooSmallException` only for below-minimum counts. | Slice 04 |
+| TD-005 | Moderator authorization | Slice 04 | Blocking | Closed | `IContentModeratorAccessor` application seam; moderation domain methods accept `ModeratorId`; handlers enforce moderator role before approve/reject/block/unblock; retire allows owner or moderator. | Slice 04 |
 | TD-006 | Word normalization | Slice 03 | Required | Closed | `Word.Normalize` now collapses all Unicode whitespace via `Split(null)` before lowercasing. | Slice 03 |
 | TD-007 | Batch duplicate consistency | Slice 03 | Required | Closed | `WordSet.AddWords` uses a single `HashSet` for existing + batch tracking: conflicts with existing words throw; within-batch duplicates are skipped deterministically (first occurrence wins). | Slice 03 |
 | TD-008 | Error code mapping | Slice 09 | Deferred | Open | Standardize domain exception → API error codes at REST boundary. | — |
 | TD-009 | MetadataUpdated event | Future | Nice | Open | Emit when non-title metadata changes; deferred until consumers exist. | — |
 | TD-010 | Content mutation intake idempotency | Slice 09–10 | Required | Open | Slice 03 mutation commands carry correlation IDs but no idempotency keys. Define replay-safe intake before these commands are exposed externally; do not alter command contracts during hardening. | — |
-| TD-011 | Draft validation aggregate-version semantics | Slice 04 | Required | Open | `ValidateDraft` changes `DraftState` without advancing `AggregateVersion`. Confirm and test the approved optimistic-concurrency behavior before persistence and publishing rely on the state. | — |
+| TD-011 | Draft validation aggregate-version semantics | Slice 04 | Required | Closed | Confirmed: `ValidateDraft` updates `DraftState` only and does not advance `AggregateVersion` or emit events; covered by unit tests. | Slice 04 |
 | TD-012 | Reliable post-commit content-event delivery | Slice 10 | Required | Open | Handlers persist before publishing events. Persistence must provide the approved retry/atomicity mechanism so a publisher failure cannot permanently lose a committed content event. | — |
 | TD-013 | Semantic no-op authoring mutations | Future | Nice | Open | Replacing a word with the same normalized value still increments version and emits `WordsChanged`; preserve current behavior until idempotency semantics are approved. | — |
 | TD-014 | Content validation constants traceability | Governance | Required | Open | `DictionaryValidation` implements max-word and word-length constants flagged by Feature Spec v1.1, but the frozen Business Constants Catalog does not contain their canonical entries. Governance must ratify the catalog references; implementation values remain unchanged. | — |
 | TD-015 | REC-5 unblock lifecycle mismatch | Slice 03 hardening | Required | Closed | Corrected `UnblockVersion` from `Blocked → Published` to the approved `Blocked → PendingReview`; review approval is now required before the Version becomes current/discoverable. | Slice 03 hardening |
-| TD-016 | ReportDictionary application/event contract | Slice 04 | Blocking | Open | Feature Spec FR-CONTENT-083 and the Slice 04 plan require reporting, but Slices 00–03 define no report command or event seam. Confirm the already-approved lifecycle-only contract before implementing moderation handlers. | — |
+| TD-016 | ReportDictionary application/event contract | Slice 04 | Blocking | Closed | `ReportDictionary` application slice; domain `Report(OwnerId reporter)` lifecycle-only on Shared/Public visibility; `DictionaryReported` event. Authenticated reporters only (Z-3). | Slice 04 |
 
 ## Slice Review Workflow
 
