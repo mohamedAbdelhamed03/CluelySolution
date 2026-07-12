@@ -59,6 +59,8 @@ public sealed class ValidateDraftHandler
 
         var owner = OwnerId.From(userId);
 
+        var versionBeforeValidation = dictionary.Version;
+
         DraftValidationReport report;
 
         try
@@ -77,9 +79,12 @@ public sealed class ValidateDraftHandler
                 ex));
         }
 
-        await _dictionaryRepository.UpdateAsync(dictionary, cancellationToken);
-        await _eventPublisher.PublishAsync(dictionary.GetPendingEvents(), cancellationToken);
-        dictionary.ClearPendingEvents();
+        if (dictionary.Version != versionBeforeValidation)
+        {
+            await _dictionaryRepository.UpdateAsync(dictionary, cancellationToken);
+            await _eventPublisher.PublishAsync(dictionary.GetPendingEvents(), cancellationToken);
+            dictionary.ClearPendingEvents();
+        }
 
         return Result.Success(new ValidateDraftResult(
             command.DictionaryId,
