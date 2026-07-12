@@ -991,4 +991,84 @@ public class ArchitectureTests(ITestOutputHelper testOutputHelper)
 
         result.IsSuccessful.Should().BeTrue();
     }
+
+    [Fact]
+    public void External_Identity_Providers_Should_Not_Reference_Api_Controllers()
+    {
+        var result = Types.InAssembly(InfrastructureAssembly)
+            .That()
+            .ImplementInterface(typeof(Application.Common.Ports.Identity.IExternalIdentityProvider))
+            .ShouldNot()
+            .HaveDependencyOn(ApiAssembly.GetName().Name!)
+            .GetResult();
+
+        result.IsSuccessful.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Auth_Handlers_Should_Depend_Only_On_External_Provider_Abstractions()
+    {
+        var forbidden = Types.InAssembly(ApplicationAssembly)
+            .That()
+            .ResideInNamespace("Cluely.Application.Auth")
+            .And()
+            .HaveNameEndingWith("Handler")
+            .ShouldNot()
+            .HaveDependencyOn("Cluely.Infrastructure.Identity.ExternalAuth.Providers")
+            .GetResult();
+
+        forbidden.IsSuccessful.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Api_Auth_Controller_Should_Not_Contain_OAuth_Provider_Logic()
+    {
+        var controllerType = ApiAssembly.GetType("Cluely.Api.Controllers.AuthController");
+        controllerType.Should().NotBeNull();
+
+        var forbiddenNamespaces = new[]
+        {
+            "Cluely.Infrastructure.Identity.ExternalAuth",
+            "Google",
+            "Facebook",
+            "Apple"
+        };
+
+        var references = controllerType!.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly)
+            .SelectMany(method => method.GetParameters())
+            .Select(parameter => parameter.ParameterType.FullName ?? parameter.ParameterType.Name)
+            .Concat(controllerType.GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
+                .Select(field => field.FieldType.FullName ?? field.FieldType.Name));
+
+        foreach (var reference in references)
+        {
+            forbiddenNamespaces.Should().NotContain(item =>
+                reference.Contains(item, StringComparison.Ordinal));
+        }
+    }
+
+    [Fact]
+    public void Domain_Should_Not_Contain_External_Provider_Specific_Code()
+    {
+        var forbiddenTokens = new[] { "Google", "Facebook", "Apple", "OAuth", "OpenIdConnect" };
+        var domainTypeNames = DomainAssembly.GetTypes()
+            .Select(type => type.FullName ?? type.Name);
+
+        foreach (var token in forbiddenTokens)
+        {
+            domainTypeNames.Should().NotContain(name => name.Contains(token, StringComparison.Ordinal));
+        }
+    }
+
+    [Fact]
+    public void User_Entity_Should_Not_Contain_External_Provider_Logic()
+    {
+        var userEntity = InfrastructureAssembly.GetType("Cluely.Infrastructure.Identity.Models.UserEntity");
+        userEntity.Should().NotBeNull();
+        userEntity!.GetProperties().Select(property => property.Name)
+            .Should()
+            .NotContain(name => name.Contains("Google", StringComparison.Ordinal)
+                || name.Contains("Facebook", StringComparison.Ordinal)
+                || name.Contains("Apple", StringComparison.Ordinal));
+    }
 }
