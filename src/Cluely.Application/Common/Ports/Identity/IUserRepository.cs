@@ -3,7 +3,7 @@ namespace Cluely.Application.Common.Ports.Identity;
 public sealed record UserAccount(
     Guid UserId,
     string Email,
-    string PasswordHash,
+    string? PasswordHash,
     string AccountStatus,
     DateTime CreatedAt);
 
