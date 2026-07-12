@@ -43,6 +43,12 @@ internal sealed class FakeDictionaryRepository : IDictionaryRepository
         return Task.CompletedTask;
     }
 
+    public void ResetCounters()
+    {
+        AddCount = 0;
+        UpdateCount = 0;
+    }
+
     public void Seed(DictionaryAggregate dictionary)
     {
         _dictionaries[dictionary.Id] = dictionary;
@@ -71,6 +77,11 @@ internal sealed class FakeCurrentUserAccessor : ICurrentUserAccessor
     public Guid? UserId { get; set; }
 
     public bool IsAuthenticated => UserId.HasValue;
+}
+
+internal sealed class FakeContentModeratorAccessor : IContentModeratorAccessor
+{
+    public bool IsModerator { get; set; }
 }
 
 internal sealed class FakeGuidGenerator : IGuidGenerator
