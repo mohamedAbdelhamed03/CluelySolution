@@ -211,23 +211,10 @@ public sealed class Dictionary : AggregateRoot<DictionaryId>
         return report;
     }
 
-    public PublishResult Publish(OwnerId actor, VersionId versionId, DateTime publishedAt)
+    public VersionId Publish(OwnerId actor, VersionId versionId, DateTime publishedAt)
     {
         EnsureOwner(actor);
         EnsureAuthoringAllowed();
-
-        var existing = _versions.SingleOrDefault(version => version.Id == versionId);
-        if (existing is not null)
-        {
-            return new PublishResult(versionId, existing.Label.Value, existing.Words.Count);
-        }
-
-        if (Draft.Words.Count > DictionaryValidation.MaxWords)
-        {
-            Draft.MarkDraft();
-            throw new DraftTooLargeException(
-                $"Draft exceeds maximum of {DictionaryValidation.MaxWords} words; found {Draft.Words.Count}.");
-        }
 
         var report = DraftValidationReport.FromWordSet(Draft.Words);
         if (!report.IsValid)
@@ -262,7 +249,7 @@ public sealed class Dictionary : AggregateRoot<DictionaryId>
             publishedVersion.Label,
             publishedVersion.Words.Count));
         IncrementVersion();
-        return new PublishResult(versionId, publishedVersion.Label.Value, publishedVersion.Words.Count);
+        return versionId;
     }
 
     public void SetVisibility(OwnerId actor, Visibility visibility)
@@ -496,17 +483,7 @@ public sealed class Dictionary : AggregateRoot<DictionaryId>
     public void RetireVersion(OwnerId actor, VersionId versionId)
     {
         EnsureOwner(actor);
-        RetireVersionCore(versionId);
-    }
 
-    public void RetireVersion(ModeratorId moderator, VersionId versionId)
-    {
-        ArgumentNullException.ThrowIfNull(moderator);
-        RetireVersionCore(versionId);
-    }
-
-    private void RetireVersionCore(VersionId versionId)
-    {
         var version = GetRequiredVersion(versionId);
         if (version.LifecycleState == VersionLifecycleState.Retired)
         {
