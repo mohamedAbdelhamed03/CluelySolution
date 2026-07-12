@@ -1,11 +1,34 @@
 using Cluely.Application.Common.Ports;
 using Cluely.Application.Common.Ports.Content;
 using Cluely.Application.Common.Ports.Identity;
+using Cluely.Application.Content.PublishDictionary;
 using Cluely.Domain.Common;
 using Cluely.Domain.Content.ValueObjects;
 using DictionaryAggregate = Cluely.Domain.Content.Dictionary;
 
 namespace Cluely.UnitTests.Content.Handlers;
+
+internal sealed class FakeContentCommandIdempotencyStore : IContentCommandIdempotencyStore
+{
+    private readonly Dictionary<Guid, PublishDictionaryResult> _publishOutcomes = new();
+
+    public Task<PublishDictionaryResult?> TryGetPublishOutcomeAsync(
+        Guid idempotencyKey,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult(_publishOutcomes.GetValueOrDefault(idempotencyKey));
+
+    public Task SavePublishOutcomeAsync(
+        Guid idempotencyKey,
+        PublishDictionaryResult outcome,
+        CancellationToken cancellationToken = default)
+    {
+        _publishOutcomes.TryAdd(idempotencyKey, outcome);
+        return Task.CompletedTask;
+    }
+
+    public void SeedPublishOutcome(Guid idempotencyKey, PublishDictionaryResult outcome) =>
+        _publishOutcomes[idempotencyKey] = outcome;
+}
 
 internal sealed class FakeDictionaryRepository : IDictionaryRepository
 {

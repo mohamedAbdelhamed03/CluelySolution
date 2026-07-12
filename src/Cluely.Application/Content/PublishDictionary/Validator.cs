@@ -8,5 +8,6 @@ public sealed class PublishDictionaryCommandValidator : AbstractValidator<Publis
     {
         RuleFor(c => c.DictionaryId).NotEmpty().WithMessage("Dictionary ID is required.");
         RuleFor(c => c.CorrelationId).NotEmpty().WithMessage("Correlation ID is required.");
+        RuleFor(c => c.IdempotencyKey).NotEmpty().WithMessage("Idempotency key is required.");
     }
 }

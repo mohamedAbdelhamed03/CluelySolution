@@ -10,9 +10,9 @@ namespace Cluely.UnitTests.Content.Handlers;
 public sealed class PublishDictionaryHandlerTests
 {
     private readonly FakeDictionaryRepository _repository = new();
+    private readonly FakeContentCommandIdempotencyStore _idempotencyStore = new();
     private readonly FakeDomainEventPublisher _eventPublisher = new();
     private readonly FakeCurrentUserAccessor _currentUser = new();
-    private readonly FakeGuidGenerator _guidGenerator = new();
     private readonly PublishDictionaryCommandValidator _validator = new();
 
     public PublishDictionaryHandlerTests()
@@ -24,19 +24,38 @@ public sealed class PublishDictionaryHandlerTests
     public async Task Publish_ValidOwnedDictionary_ShouldCreateVersionAndPublishEvent()
     {
         var dictionary = SeedOwnedDictionaryWithWords(25);
-        var versionGuid = Guid.NewGuid();
-        _guidGenerator.Enqueue(versionGuid);
+        var idempotencyKey = Guid.NewGuid();
 
         var result = await CreateHandler().HandleAsync(
-            new PublishDictionaryCommand(dictionary.Id.Value, Guid.NewGuid()));
+            new PublishDictionaryCommand(dictionary.Id.Value, Guid.NewGuid(), idempotencyKey));
 
         result.IsSuccess.Should().BeTrue();
-        result.Value.VersionId.Should().Be(versionGuid);
+        result.Value.VersionId.Should().Be(idempotencyKey);
         result.Value.VersionLabel.Should().Be(1);
         result.Value.WordCount.Should().Be(25);
         _repository.UpdateCount.Should().Be(1);
         _eventPublisher.PublishedEvents.OfType<VersionPublished>().Should().ContainSingle();
         dictionary.GetPendingEvents().Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Publish_DuplicateIdempotencyKey_ShouldReturnExistingOutcomeWithoutSecondVersion()
+    {
+        var dictionary = SeedOwnedDictionaryWithWords(25);
+        var idempotencyKey = Guid.NewGuid();
+        var handler = CreateHandler();
+
+        var first = await handler.HandleAsync(
+            new PublishDictionaryCommand(dictionary.Id.Value, Guid.NewGuid(), idempotencyKey));
+        var second = await handler.HandleAsync(
+            new PublishDictionaryCommand(dictionary.Id.Value, Guid.NewGuid(), idempotencyKey));
+
+        first.IsSuccess.Should().BeTrue();
+        second.IsSuccess.Should().BeTrue();
+        second.Value.Should().BeEquivalentTo(first.Value);
+        dictionary.Versions.Should().ContainSingle();
+        _repository.UpdateCount.Should().Be(1);
+        _eventPublisher.PublishedEvents.OfType<VersionPublished>().Should().ContainSingle();
     }
 
     [Fact]
@@ -46,7 +65,7 @@ public sealed class PublishDictionaryHandlerTests
         _currentUser.UserId = null;
 
         var result = await CreateHandler().HandleAsync(
-            new PublishDictionaryCommand(dictionary.Id.Value, Guid.NewGuid()));
+            new PublishDictionaryCommand(dictionary.Id.Value, Guid.NewGuid(), Guid.NewGuid()));
 
         result.IsFailure.Should().BeTrue();
         result.Error!.Code.Should().Be("Unauthorized");
@@ -58,7 +77,7 @@ public sealed class PublishDictionaryHandlerTests
     public async Task Publish_WhenDictionaryMissing_ShouldFail()
     {
         var result = await CreateHandler().HandleAsync(
-            new PublishDictionaryCommand(Guid.NewGuid(), Guid.NewGuid()));
+            new PublishDictionaryCommand(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid()));
 
         result.IsFailure.Should().BeTrue();
         result.Error!.Code.Should().Be("DictionaryNotFound");
@@ -79,7 +98,7 @@ public sealed class PublishDictionaryHandlerTests
         _repository.Seed(dictionary);
 
         var result = await CreateHandler().HandleAsync(
-            new PublishDictionaryCommand(dictionary.Id.Value, Guid.NewGuid()));
+            new PublishDictionaryCommand(dictionary.Id.Value, Guid.NewGuid(), Guid.NewGuid()));
 
         result.IsFailure.Should().BeTrue();
         result.Error!.Code.Should().Be(nameof(Cluely.Domain.Content.Errors.NotOwnerException));
@@ -93,7 +112,7 @@ public sealed class PublishDictionaryHandlerTests
         var dictionary = SeedOwnedDictionaryWithWords(24);
 
         var result = await CreateHandler().HandleAsync(
-            new PublishDictionaryCommand(dictionary.Id.Value, Guid.NewGuid()));
+            new PublishDictionaryCommand(dictionary.Id.Value, Guid.NewGuid(), Guid.NewGuid()));
 
         result.IsFailure.Should().BeTrue();
         result.Error!.Code.Should().Be(nameof(Cluely.Domain.Content.Errors.DraftTooSmallException));
@@ -106,24 +125,24 @@ public sealed class PublishDictionaryHandlerTests
     public async Task Publish_WithEmptyDictionaryId_ShouldFailValidation()
     {
         var result = await CreateHandler().HandleAsync(
-            new PublishDictionaryCommand(Guid.Empty, Guid.NewGuid()));
+            new PublishDictionaryCommand(Guid.Empty, Guid.NewGuid(), Guid.NewGuid()));
 
         result.IsFailure.Should().BeTrue();
         result.Error!.Code.Should().Be("ValidationFailed");
     }
 
     [Fact]
-    public async Task Publish_Twice_ShouldCreateTwoVersionsWithIncrementingLabels()
+    public async Task Publish_TwiceWithDifferentKeys_ShouldCreateTwoVersionsWithIncrementingLabels()
     {
         var owner = OwnerId.From(_currentUser.UserId!.Value);
         var dictionary = SeedOwnedDictionaryWithWords(25);
-        _guidGenerator.Enqueue(Guid.NewGuid());
-        _guidGenerator.Enqueue(Guid.NewGuid());
         var handler = CreateHandler();
 
-        var first = await handler.HandleAsync(new PublishDictionaryCommand(dictionary.Id.Value, Guid.NewGuid()));
+        var first = await handler.HandleAsync(
+            new PublishDictionaryCommand(dictionary.Id.Value, Guid.NewGuid(), Guid.NewGuid()));
         dictionary.AddWords(owner, ["additional"]);
-        var second = await handler.HandleAsync(new PublishDictionaryCommand(dictionary.Id.Value, Guid.NewGuid()));
+        var second = await handler.HandleAsync(
+            new PublishDictionaryCommand(dictionary.Id.Value, Guid.NewGuid(), Guid.NewGuid()));
 
         first.Value.VersionLabel.Should().Be(1);
         second.Value.VersionLabel.Should().Be(2);
@@ -131,8 +150,27 @@ public sealed class PublishDictionaryHandlerTests
         dictionary.Versions.Should().HaveCount(2);
     }
 
+    [Fact]
+    public async Task Publish_WhenIdempotencyKeyBoundToAnotherDictionary_ShouldFail()
+    {
+        var firstDictionary = SeedOwnedDictionaryWithWords(25);
+        var secondDictionary = SeedOwnedDictionaryWithWords(25);
+        var idempotencyKey = Guid.NewGuid();
+        var handler = CreateHandler();
+
+        await handler.HandleAsync(
+            new PublishDictionaryCommand(firstDictionary.Id.Value, Guid.NewGuid(), idempotencyKey));
+
+        var result = await handler.HandleAsync(
+            new PublishDictionaryCommand(secondDictionary.Id.Value, Guid.NewGuid(), idempotencyKey));
+
+        result.IsFailure.Should().BeTrue();
+        result.Error!.Code.Should().Be("IdempotencyKeyConflict");
+        secondDictionary.Versions.Should().BeEmpty();
+    }
+
     private PublishDictionaryHandler CreateHandler() =>
-        new(_repository, _eventPublisher, _currentUser, _guidGenerator, _validator);
+        new(_repository, _idempotencyStore, _eventPublisher, _currentUser, _validator);
 
     private Dictionary SeedOwnedDictionaryWithWords(int wordCount)
     {

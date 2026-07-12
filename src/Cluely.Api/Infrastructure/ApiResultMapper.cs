@@ -93,6 +93,7 @@ public static class ApiResultMapper
             BusinessError { Code: "Unauthorized" } => StatusCodes.Status401Unauthorized,
             BusinessError { Code: "Forbidden" } => StatusCodes.Status403Forbidden,
             BusinessError { Code: "DictionaryNotFound" } => StatusCodes.Status404NotFound,
+            BusinessError { Code: "IdempotencyKeyConflict" } => StatusCodes.Status409Conflict,
             BusinessError { Code: "NotOwnerException" } => StatusCodes.Status403Forbidden,
             BusinessError { Code: "VersionNotFoundException" } => StatusCodes.Status404NotFound,
             BusinessError { Code: "ShareGrantNotFoundException" } => StatusCodes.Status404NotFound,

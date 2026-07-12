@@ -12,22 +12,22 @@ namespace Cluely.Application.Content.PublishDictionary;
 public sealed class PublishDictionaryHandler
 {
     private readonly IDictionaryRepository _dictionaryRepository;
+    private readonly IContentCommandIdempotencyStore _idempotencyStore;
     private readonly IDomainEventPublisher _eventPublisher;
     private readonly ICurrentUserAccessor _currentUserAccessor;
-    private readonly IGuidGenerator _guidGenerator;
     private readonly IValidator<PublishDictionaryCommand> _validator;
 
     public PublishDictionaryHandler(
         IDictionaryRepository dictionaryRepository,
+        IContentCommandIdempotencyStore idempotencyStore,
         IDomainEventPublisher eventPublisher,
         ICurrentUserAccessor currentUserAccessor,
-        IGuidGenerator guidGenerator,
         IValidator<PublishDictionaryCommand> validator)
     {
         _dictionaryRepository = dictionaryRepository;
+        _idempotencyStore = idempotencyStore;
         _eventPublisher = eventPublisher;
         _currentUserAccessor = currentUserAccessor;
-        _guidGenerator = guidGenerator;
         _validator = validator;
     }
 
@@ -51,6 +51,21 @@ public sealed class PublishDictionaryHandler
                 "Authentication is required."));
         }
 
+        var cachedOutcome = await _idempotencyStore.TryGetPublishOutcomeAsync(
+            command.IdempotencyKey,
+            cancellationToken);
+        if (cachedOutcome is not null)
+        {
+            if (cachedOutcome.DictionaryId != command.DictionaryId)
+            {
+                return Result.Failure<PublishDictionaryResult>(new BusinessError(
+                    "IdempotencyKeyConflict",
+                    "The idempotency key is already associated with a different dictionary."));
+            }
+
+            return Result.Success(cachedOutcome);
+        }
+
         var dictionaryId = DictionaryId.From(command.DictionaryId);
         var dictionary = await _dictionaryRepository.GetAsync(dictionaryId, cancellationToken);
         if (dictionary is null)
@@ -61,7 +76,7 @@ public sealed class PublishDictionaryHandler
         }
 
         var owner = OwnerId.From(userId);
-        var versionId = VersionId.From(_guidGenerator.Generate());
+        var versionId = VersionId.From(command.IdempotencyKey);
         var publishedAt = command.PublishedAt ?? DateTime.UtcNow;
 
         try
@@ -81,15 +96,30 @@ public sealed class PublishDictionaryHandler
         }
 
         var publishedEvent = dictionary.GetPendingEvents().OfType<VersionPublished>().Single();
-
-        await _dictionaryRepository.UpdateAsync(dictionary, cancellationToken);
-        await _eventPublisher.PublishAsync(dictionary.GetPendingEvents(), cancellationToken);
-        dictionary.ClearPendingEvents();
-
-        return Result.Success(new PublishDictionaryResult(
+        var outcome = new PublishDictionaryResult(
             command.DictionaryId,
             versionId.Value,
             publishedEvent.Label.Value,
-            publishedEvent.WordCount));
+            publishedEvent.WordCount);
+
+        await _dictionaryRepository.UpdateAsync(dictionary, cancellationToken);
+        await TryBackfillPublishOutcomeAsync(command.IdempotencyKey, outcome, cancellationToken);
+        await _eventPublisher.PublishAsync(dictionary.GetPendingEvents(), cancellationToken);
+        dictionary.ClearPendingEvents();
+
+        return Result.Success(outcome);
+    }
+
+    private async Task TryBackfillPublishOutcomeAsync(
+        Guid idempotencyKey,
+        PublishDictionaryResult outcome,
+        CancellationToken cancellationToken)
+    {
+        if (await _idempotencyStore.TryGetPublishOutcomeAsync(idempotencyKey, cancellationToken) is not null)
+        {
+            return;
+        }
+
+        await _idempotencyStore.SavePublishOutcomeAsync(idempotencyKey, outcome, cancellationToken);
     }
 }
