@@ -187,7 +187,10 @@ public sealed class ContentController : ControllerBase
     public async Task<IActionResult> Publish(Guid id, CancellationToken cancellationToken)
     {
         var result = await _publishHandler.HandleAsync(
-            new PublishDictionaryCommand(id, CorrelationIdAccessor.GetCorrelationId(HttpContext)),
+            new PublishDictionaryCommand(
+                id,
+                CorrelationIdAccessor.GetCorrelationId(HttpContext),
+                IdempotencyKeyAccessor.GetIdempotencyKey(HttpContext)),
             cancellationToken);
 
         return result.ToActionResult(this, value =>

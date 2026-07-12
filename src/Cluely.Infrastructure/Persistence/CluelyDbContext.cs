@@ -14,6 +14,7 @@ public class CluelyDbContext : DbContext
     public DbSet<RoomEvent> RoomEvents { get; set; }
     public DbSet<DictionarySnapshot> DictionarySnapshots { get; set; }
     public DbSet<DictionaryShareGrantRow> DictionaryShareGrants { get; set; }
+    public DbSet<ContentCommandOutcome> ContentCommandOutcomes { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -21,5 +22,6 @@ public class CluelyDbContext : DbContext
         modelBuilder.ApplyConfiguration(new RoomEventConfiguration());
         modelBuilder.ApplyConfiguration(new DictionarySnapshotConfiguration());
         modelBuilder.ApplyConfiguration(new DictionaryShareGrantConfiguration());
+        modelBuilder.ApplyConfiguration(new ContentCommandOutcomeConfiguration());
     }
 }

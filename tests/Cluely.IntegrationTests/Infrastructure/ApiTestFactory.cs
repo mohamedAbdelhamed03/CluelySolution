@@ -1,4 +1,4 @@
-using Cluely.Application.Common.Ports;
+using Cluely.Application.Common.Ports.Identity;
 using Cluely.Infrastructure.Identity;
 using Cluely.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Hosting;
@@ -40,14 +40,14 @@ public sealed class ApiTestFactory : WebApplicationFactory<Program>
             ReplaceDbContext<CluelyDbContext>(services);
             ReplaceDbContext<IdentityDbContext>(services);
 
-            var publisherDescriptor = services.SingleOrDefault(
-                service => service.ServiceType == typeof(IDomainEventPublisher));
-            if (publisherDescriptor is not null)
+            var moderatorDescriptor = services.SingleOrDefault(
+                service => service.ServiceType == typeof(IContentModeratorAccessor));
+            if (moderatorDescriptor is not null)
             {
-                services.Remove(publisherDescriptor);
+                services.Remove(moderatorDescriptor);
             }
 
-            services.AddScoped<IDomainEventPublisher, NoOpDomainEventPublisher>();
+            services.AddScoped<IContentModeratorAccessor, TestContentModeratorAccessor>();
         });
     }
 

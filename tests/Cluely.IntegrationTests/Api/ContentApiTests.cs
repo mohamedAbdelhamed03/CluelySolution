@@ -164,12 +164,14 @@ public sealed class ContentApiTests
         var validation = await validateResponse.Content.ReadFromJsonAsync<ValidateContentResponse>();
         validation!.IsValid.Should().BeTrue();
 
-        var publishResponse = await client.PostAsync(
+        var publishIdempotencyKey = Guid.NewGuid();
+        var publishResponse = await PostWithIdempotencyAsync(
+            client,
             $"/api/content/{created.DictionaryId}/publish",
-            null);
+            publishIdempotencyKey);
         publishResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var published = await publishResponse.Content.ReadFromJsonAsync<PublishContentResponse>();
-        published!.VersionId.Should().NotBeEmpty();
+        published!.VersionId.Should().Be(publishIdempotencyKey);
         published.WordCount.Should().Be(DictionaryValidation.MinWords);
         published.VersionLabel.Should().Be(1);
 
@@ -206,7 +208,11 @@ public sealed class ContentApiTests
             $"/api/content/{created.DictionaryId}/words",
             new AddWordsRequest { Words = ValidWordBatch(DictionaryValidation.MinWords).ToList() });
         await client.PostAsync($"/api/content/{created.DictionaryId}/validate", null);
-        var publishResponse = await client.PostAsync($"/api/content/{created.DictionaryId}/publish", null);
+        var publishResponse = await PostWithIdempotencyAsync(
+            client,
+            $"/api/content/{created.DictionaryId}/publish",
+            Guid.NewGuid());
+        publishResponse.EnsureSuccessStatusCode();
         var published = await publishResponse.Content.ReadFromJsonAsync<PublishContentResponse>();
 
         var approveResponse = await client.PostAsJsonAsync(
@@ -216,6 +222,41 @@ public sealed class ContentApiTests
         approveResponse.StatusCode.Should().Be(HttpStatusCode.Forbidden);
         var problem = await approveResponse.Content.ReadFromJsonAsync<ProblemDetails>();
         problem!.Extensions["code"]!.ToString().Should().Be("Forbidden");
+    }
+
+    [Fact]
+    public async Task Publish_WithDuplicateIdempotencyKey_ReturnsSameVersion()
+    {
+        await using var factory = await CreateFactoryAsync();
+        using var client = factory.CreateClient();
+        await AuthTestHelper.AuthenticateClientAsync(client);
+        var created = await CreateDictionaryAsync(client);
+
+        await client.PostAsJsonAsync(
+            $"/api/content/{created.DictionaryId}/words",
+            new AddWordsRequest { Words = ValidWordBatch(DictionaryValidation.MinWords).ToList() });
+        await client.PostAsync($"/api/content/{created.DictionaryId}/validate", null);
+
+        var idempotencyKey = Guid.NewGuid();
+        var first = await PostWithIdempotencyAsync(
+            client,
+            $"/api/content/{created.DictionaryId}/publish",
+            idempotencyKey);
+        var second = await PostWithIdempotencyAsync(
+            client,
+            $"/api/content/{created.DictionaryId}/publish",
+            idempotencyKey);
+
+        first.StatusCode.Should().Be(HttpStatusCode.OK);
+        second.StatusCode.Should().Be(HttpStatusCode.OK);
+        var firstBody = await first.Content.ReadFromJsonAsync<PublishContentResponse>();
+        var secondBody = await second.Content.ReadFromJsonAsync<PublishContentResponse>();
+        secondBody.Should().BeEquivalentTo(firstBody);
+        firstBody!.VersionId.Should().Be(idempotencyKey);
+
+        var versionsResponse = await client.GetAsync($"/api/content/{created.DictionaryId}/versions");
+        var versions = await versionsResponse.Content.ReadFromJsonAsync<List<ContentVersionResponse>>();
+        versions.Should().ContainSingle();
     }
 
     [Fact]
@@ -257,6 +298,16 @@ public sealed class ContentApiTests
         {
             yield return $"word{index + 1}";
         }
+    }
+
+    private static async Task<HttpResponseMessage> PostWithIdempotencyAsync(
+        HttpClient client,
+        string url,
+        Guid idempotencyKey)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, url);
+        request.Headers.Add(IdempotencyKeyAccessor.HeaderName, idempotencyKey.ToString());
+        return await client.SendAsync(request);
     }
 
     private static async Task<ContentCreatedResponse> CreateDictionaryAsync(HttpClient client)

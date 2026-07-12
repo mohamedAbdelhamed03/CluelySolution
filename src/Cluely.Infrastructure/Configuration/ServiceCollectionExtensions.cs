@@ -36,6 +36,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IRoomCustody, SqlRoomCustody>();
         services.AddScoped<IRoomReadModelProvider, RoomReadModelProvider>();
         services.AddScoped<IDictionaryRepository, SqlDictionaryRepository>();
+        services.AddScoped<IContentCommandIdempotencyStore, SqlContentCommandIdempotencyStore>();
         services.AddScoped<IDictionaryReadModelProvider, DictionaryReadModelProvider>();
         services.AddScoped<IContentModeratorAccessor, UnavailableContentModeratorAccessor>();
 
@@ -44,7 +45,9 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IVisibilityFilter, VisibilityFilter>();
 
         services.AddScoped<IDeliveryDispatcher, SignalRDeliveryDispatcher>();
-        services.AddScoped<IDomainEventPublisher, SignalRDomainEventPublisher>();
+        services.AddScoped<SignalRDomainEventPublisher>();
+        services.AddScoped<ContentDomainEventPublisher>();
+        services.AddScoped<IDomainEventPublisher, CompositeDomainEventPublisher>();
         services.AddScoped<IGameConnectionService, GameConnectionService>();
 
         services.AddSingleton<IGuidGenerator, GuidGenerator>();
