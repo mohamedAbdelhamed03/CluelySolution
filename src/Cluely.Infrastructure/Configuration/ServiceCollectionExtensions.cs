@@ -36,6 +36,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IRoomCustody, SqlRoomCustody>();
         services.AddScoped<IRoomReadModelProvider, RoomReadModelProvider>();
         services.AddScoped<IDictionaryRepository, UnavailableDictionaryRepository>();
+        services.AddScoped<IDictionaryReadModelProvider, DictionaryReadModelProvider>();
         services.AddScoped<IContentModeratorAccessor, UnavailableContentModeratorAccessor>();
 
         services.AddSingleton<IConnectionRegistry, ConnectionRegistry>();
