@@ -856,4 +856,30 @@ public class ArchitectureTests(ITestOutputHelper testOutputHelper)
 
         settableProperties.Should().BeEmpty();
     }
+
+    [Fact]
+    public void Application_Should_Not_Reference_EntityFrameworkCore()
+    {
+        // EF Core is an Infrastructure concern; ports and read models stay persistence-agnostic.
+        var result = Types.InAssembly(ApplicationAssembly)
+            .ShouldNot()
+            .HaveDependencyOn("Microsoft.EntityFrameworkCore")
+            .GetResult();
+
+        result.IsSuccessful.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Dictionary_Read_Model_Provider_Should_Not_Depend_On_Domain_Entities()
+    {
+        // The discovery read model returns DTOs projected from snapshots; it never touches the aggregate.
+        var result = Types.InAssembly(InfrastructureAssembly)
+            .That()
+            .HaveName("DictionaryReadModelProvider")
+            .ShouldNot()
+            .HaveDependencyOn("Cluely.Domain.Content.Entities")
+            .GetResult();
+
+        result.IsSuccessful.Should().BeTrue();
+    }
 }
