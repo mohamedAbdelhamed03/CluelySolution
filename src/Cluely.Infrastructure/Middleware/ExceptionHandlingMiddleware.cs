@@ -80,7 +80,9 @@ public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Ex
             },
             Status = statusCode,
             Type = "https://tools.ietf.org/html/rfc7807",
-            Detail = exception.Message,
+            Detail = statusCode >= StatusCodes.Status500InternalServerError
+                ? "An unexpected server error occurred."
+                : exception.Message,
             Instance = context.Request.Path,
             Extensions =
             {

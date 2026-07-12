@@ -50,7 +50,7 @@ public sealed class LoginUserHandler
         var user = await _userRepository.GetByEmailAsync(normalizedEmail, cancellationToken);
         if (user is null || !_passwordHasher.VerifyPassword(command.Password, user.PasswordHash))
         {
-            _logger.LogWarning("Failed login attempt for email {Email}.", normalizedEmail);
+            _logger.LogWarning("Rejected login attempt with invalid credentials.");
             return Result.Failure<LoginUserResult>(new BusinessError(
                 "InvalidCredentials",
                 "Invalid email or password."));
