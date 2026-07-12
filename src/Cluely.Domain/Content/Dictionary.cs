@@ -94,22 +94,41 @@ public sealed class Dictionary : AggregateRoot<DictionaryId>
         DictionaryId newId,
         OwnerId newOwner,
         Dictionary source,
-        DictionaryVersion sourceVersion,
-        DictionaryMetadata metadata)
+        VersionId sourceVersionId,
+        DictionaryMetadata metadata,
+        DateTime clonedAt)
     {
-        if (sourceVersion.DictionaryId != source.Id)
-        {
-            throw new VersionNotFoundException("Source version does not belong to the source dictionary.");
-        }
+        // Resolves the source version from the source aggregate (throws if it does not belong to it),
+        // so callers never need to hold a domain entity to request a clone.
+        var sourceVersion = source.GetRequiredVersion(sourceVersionId);
 
-        var provenance = Provenance.From(sourceVersion.Id);
+        var provenance = Provenance.ForClone(source.Id, sourceVersionId, clonedAt);
         var clone = new Dictionary(newId, newOwner, ContentType.User, metadata, provenance);
         clone.Draft.SetWords(sourceVersion.Words.Copy());
         clone.AddDomainEvent(new DictionaryCloned(
             newId,
             source.Id,
-            sourceVersion.Id));
+            sourceVersionId));
         return clone;
+    }
+
+    /// <summary>
+    /// Whether <paramref name="requester"/> may view this dictionary: the owner always may; public
+    /// content is viewable by anyone; shared content by its grantees; private content by the owner only.
+    /// </summary>
+    public bool IsViewableBy(OwnerId requester)
+    {
+        if (requester == Owner)
+        {
+            return true;
+        }
+
+        if (Visibility == Visibility.Public)
+        {
+            return true;
+        }
+
+        return Visibility == Visibility.Shared && _shareGrants.Any(grant => grant.GranteeId == requester);
     }
 
     public void UpdateMetadata(OwnerId actor, DictionaryMetadata metadata)

@@ -16,7 +16,7 @@ Every implementation review updates this file. Last reviewed: **Slice 04 Milesto
 
 | ID | Title | Owner Slice | Priority | Status | Decision | Resolved In |
 |----|-------|-------------|----------|--------|----------|-------------|
-| TD-001 | ShareGrant equality | Slice 07 | Blocking | Open | — | — |
+| TD-001 | ShareGrant equality | Slice 07 | Blocking | Closed | `ShareGrant` equality is now by `GranteeId` only (timestamp is informational). A dictionary holds at most one grant per grantee: duplicate `ShareDictionary` commands are rejected via `DuplicateShareGrantException` and `RevokeShare` is deterministic. | feature/content-sharing |
 | TD-002 | Visibility enumeration | Slice 06–07 | Required | Open | — | — |
 | TD-003 | Create idempotency race and ownership scope | Slice 10 | Blocking | Open | Enforce an atomic uniqueness boundary and scope replay lookup to the authenticated owner plus request fingerprint; the current key-only lookup can race and can return another owner's result if keys collide. | — |
 | TD-004 | Publish exception consistency | Slice 04 | Required | Open | — | — |

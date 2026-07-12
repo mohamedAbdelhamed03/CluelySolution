@@ -9,6 +9,7 @@ using Cluely.Application.Content.ArchiveDictionary;
 using Cluely.Application.Content.BlockVersion;
 using Cluely.Application.Content.BulkAddWords;
 using Cluely.Application.Content.CancelDeleteDictionary;
+using Cluely.Application.Content.CloneDictionary;
 using Cluely.Application.Content.CreateDictionary;
 using Cluely.Application.Content.DeleteDictionary;
 using Cluely.Application.Content.Discovery.GetDictionaryDetails;
@@ -23,6 +24,8 @@ using Cluely.Application.Content.ReportDictionary;
 using Cluely.Application.Content.RestoreDictionary;
 using Cluely.Application.Content.RenameDictionary;
 using Cluely.Application.Content.RetireVersion;
+using Cluely.Application.Content.RevokeShare;
+using Cluely.Application.Content.ShareDictionary;
 using Cluely.Application.Content.SubmitForReview;
 using Cluely.Application.Content.UnblockVersion;
 using Cluely.Application.Content.ValidateDraft;
@@ -100,6 +103,10 @@ public static class ServiceCollectionExtensions
         services.AddTransient<GetDiscoverableDictionariesHandler>();
         services.AddTransient<GetDictionaryDetailsHandler>();
         services.AddTransient<GetDictionaryVersionsHandler>();
+
+        services.AddTransient<ShareDictionaryHandler>();
+        services.AddTransient<RevokeShareHandler>();
+        services.AddTransient<CloneDictionaryHandler>();
 
         return services;
     }
