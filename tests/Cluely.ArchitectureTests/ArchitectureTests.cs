@@ -1,5 +1,6 @@
 using System.Reflection;
 using FluentAssertions;
+using Microsoft.AspNetCore.Mvc;
 using NetArchTest.Rules;
 using Xunit;
 using Xunit.Abstractions;
@@ -818,6 +819,84 @@ public class ArchitectureTests(ITestOutputHelper testOutputHelper)
         typeof(Domain.Content.Events.DictionaryReported)
             .Should()
             .Implement<Domain.Common.IContentDomainEvent>();
+    }
+
+    [Fact]
+    public void Content_Controllers_Should_Not_Reference_Domain_Or_Infrastructure()
+    {
+        var contentControllers = ApiAssembly.GetTypes()
+            .Where(type => type.Namespace == "Cluely.Api.Controllers"
+                && type.Name.StartsWith("Content", StringComparison.Ordinal)
+                && type.IsSubclassOf(typeof(ControllerBase)))
+            .ToList();
+
+        contentControllers.Should().NotBeEmpty();
+
+        foreach (var controller in contentControllers)
+        {
+            var referencesDomain = controller.GetMethods()
+                .SelectMany(method => method.GetParameters())
+                .Concat(controller.GetConstructors().SelectMany(constructor => constructor.GetParameters()))
+                .Any(parameter => parameter.ParameterType.Assembly == DomainAssembly);
+
+            referencesDomain.Should().BeFalse($"{controller.Name} must not reference Domain types.");
+        }
+
+        var infrastructureDependency = Types.InAssembly(ApiAssembly)
+            .That()
+            .ResideInNamespace("Cluely.Api.Controllers")
+            .And()
+            .HaveNameStartingWith("Content")
+            .ShouldNot()
+            .HaveDependencyOn(InfrastructureAssembly.GetName().Name!)
+            .GetResult();
+
+        infrastructureDependency.IsSuccessful.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Content_Controllers_Should_Only_Depend_On_Application_And_Api_Contracts()
+    {
+        var allowedAssemblies = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ApiAssembly.GetName().Name!,
+            ApplicationAssembly.GetName().Name!,
+            typeof(ControllerBase).Assembly.GetName().Name!,
+            typeof(Microsoft.AspNetCore.Authorization.AuthorizeAttribute).Assembly.GetName().Name!,
+            typeof(Microsoft.AspNetCore.Mvc.ProblemDetails).Assembly.GetName().Name!,
+            "System.Runtime",
+            "netstandard",
+            "Microsoft.AspNetCore.Http.Abstractions",
+            "Microsoft.AspNetCore.Mvc.Core",
+            "Microsoft.AspNetCore.Mvc.Abstractions"
+        };
+
+        var contentControllers = ApiAssembly.GetTypes()
+            .Where(type => type.Namespace == "Cluely.Api.Controllers"
+                && type.Name.StartsWith("Content", StringComparison.Ordinal))
+            .ToList();
+
+        foreach (var controller in contentControllers)
+        {
+            var foreignReferences = controller.GetConstructors()
+                .SelectMany(constructor => constructor.GetParameters())
+                .Select(parameter => parameter.ParameterType.Assembly.GetName().Name!)
+                .Where(name => !allowedAssemblies.Contains(name)
+                    && !name.StartsWith("System.", StringComparison.Ordinal)
+                    && !name.StartsWith("Microsoft.AspNetCore.", StringComparison.Ordinal))
+                .Distinct()
+                .ToList();
+
+            foreignReferences.Should().BeEmpty($"{controller.Name} constructor references unexpected assemblies.");
+        }
+    }
+
+    [Fact]
+    public void Content_Request_And_Response_Contracts_Should_Exist()
+    {
+        ApiAssembly.GetType("Cluely.Api.Contracts.Requests.CreateContentRequest").Should().NotBeNull();
+        ApiAssembly.GetType("Cluely.Api.Contracts.Responses.ContentCreatedResponse").Should().NotBeNull();
+        ApiAssembly.GetType("Cluely.Api.Contracts.Responses.ContentDetailsResponse").Should().NotBeNull();
     }
 
     [Fact]
