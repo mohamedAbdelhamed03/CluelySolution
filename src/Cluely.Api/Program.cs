@@ -56,7 +56,7 @@ if (!builder.Environment.IsEnvironment("Testing"))
         {
             Title = "Cluely API",
             Version = "v1",
-            Description = "REST API for Cluely room management, gameplay commands, and authentication."
+            Description = "REST API for Cluely authentication, room management, gameplay, and the Content Platform (dictionaries, discovery, sharing, and moderation)."
         });
 
         options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
