@@ -1,116 +1,86 @@
-# Cluely — Phase 05.03 — Backend Release Candidate Report
+# Cluely Backend Release Candidate — RC1
 
-**Date:** 2026-07-11  
-**Status:** Release Candidate  
-**Test Count:** 107 passing (11 unit + 35 architecture + 61 integration)
+**Date:** 2026-07-12  
+**Branch:** `feature/backend-release-candidate`  
+**Scope:** Production readiness only; no frontend or business-feature changes.
 
----
+## Release assessment
 
-## Executive Summary
+RC1 is suitable for frontend integration and a controlled single-instance production deployment after environment configuration and database migrations. No Critical or High-severity code defects remain from this review.
 
-Phase 05.03 performed a full backend polish pass with **no new features**, **no contract changes**, and **no architecture changes**. The primary fix was resolving TD-0502-03 (missing participant binding returning 500 → now 403 Forbidden with structured ProblemDetails). Exception handling, logging correlation, OpenAPI documentation, and architecture enforcement were strengthened.
+## Security review
 
-The backend is **frozen for frontend integration** except for bug fixes.
+Resolved:
 
----
+- Refresh-token rotation is atomic; concurrent replay permits one successful replacement only.
+- The moderator authorization seam uses a deployment-controlled user-ID allow-list instead of a deny-all placeholder.
+- Authentication endpoints have a stricter fixed-window rate limit; all endpoints have a global in-process limit.
+- CORS is deny-by-default and accepts only configured exact origins.
+- Kestrel request bodies default to a 1 MiB maximum.
+- API responses include anti-sniffing, frame, referrer, permissions, and API-safe CSP headers.
+- Unexpected exceptions return generic ProblemDetails and never expose exception messages or stack traces.
+- Failed-login logs no longer contain email addresses.
 
-## Improvements Performed
+Verified:
 
-### Technical Debt
+- JWT issuer, audience, signing key, lifetime, and 30-second clock skew validation.
+- Refresh tokens are random, hashed at rest, rotated, and revoked on logout.
+- Room participant identity is resolved server-side; clients cannot authorize with participant IDs.
+- Dictionary visibility is filtered server-side. Owners see history; shared/public viewers see only the current version.
+- EF Core parameterizes database queries; no raw SQL was found.
+- Metadata is JSON-encoded by ASP.NET Core; no HTML rendering occurs in the backend.
 
-| ID | Item | Resolution |
-|----|------|------------|
-| TD-0502-03 | Missing binding → 500 | **Fixed** — `ParticipantBindingNotFoundException` → 403 + `ParticipantBindingNotFound` code |
-| TD-0502-02 | Binding persists after leave | **Accepted for MVP** — Domain enforces membership; binding supports ADR-009 continuity |
-| TD-0502-01 | JWT signing key in config | **Accepted for MVP** — documented production guidance |
-| TD-0502-04 | Shared SQL connection string | **Accepted for MVP** — separate DbContexts maintain boundaries |
-| TD-0502-05 | No login rate limiting | **Future Release** — gateway design documented in API README |
-| TD-0502-06 | No email verification | **Accepted for MVP** — explicit out-of-scope |
+## Production readiness
 
-### Exception Handling
+- Health checks cover primary SQL connectivity, Identity DB connectivity, content-table queryability, and SignalR delivery registration.
+- Request telemetry records CorrelationId (log context), UserId, RoomId or DictionaryId when present, status, and elapsed milliseconds without bodies or tokens.
+- HSTS is enabled outside Development; TLS termination remains a deployment requirement.
+- `openapi.json` is generated during every API build and validated against ApiExplorer in integration tests.
 
-- `ExceptionHandlingMiddleware` now maps `ParticipantBindingNotFoundException` → 403
-- Client errors (4xx) log at Warning; server errors (5xx) at Error
-- All middleware ProblemDetails include `code` and `correlationId` extensions
-- Consistent RFC 7807 shape across middleware and `ApiResultMapper`
+## Performance review
 
-### Logging
+No optimization was applied without evidence.
 
-- `CorrelationIdMiddleware` pushes `CorrelationId` into Serilog `LogContext`
-- Shared `CorrelationIdConstants` in Application.Common for cross-layer consistency
+- Discovery summary queries use `AsNoTracking` and SQL projection.
+- Visibility checks execute server-side with indexed owner, visibility, and grantee columns.
+- Detail/version reads load one projected snapshot and deserialize once; no N+1 query path was found.
+- Repository aggregate loads are `AsNoTracking`; writes use optimistic concurrency.
+- SignalR builds one internal projection per broadcast, then filters per connection.
+- Publish outcome lookup uses the idempotency-key primary key.
 
-### OpenAPI / Documentation
+## Architecture audit
 
-- Swagger API title, version, description
-- Controller tags: Auth, Rooms, Gameplay, Projections, Health
-- `ProducesResponseType(ProblemDetails)` on key endpoints (400, 401, 403, 409)
-- XML summaries on controller classes
-- API README updated with 403 mapping and production security notes
+The existing architecture suite verifies Domain isolation, API-to-Domain restrictions, DbContext placement, immutable collection exposure, no reflection/serialization attributes in Content Domain, thin controllers, Application-to-Infrastructure separation, and content controller dependencies. All architecture tests pass.
 
-### Architecture Tests (+3)
+## Accepted debt and operating limits
 
-- Application handlers must not reference Infrastructure
-- IdentityDbContext must not contain business methods
-- ParticipantBindingNotFoundException exists for forbidden binding cases
+- **TD-020:** discovery and version history are unpaginated. Global rate/request limits reduce abuse, but large catalogs can increase latency and memory. Pagination requires a frozen-contract revision.
+- **TD-010:** non-publish content mutations do not all have command idempotency keys.
+- **TD-008:** some domain exceptions still map through a broad conflict fallback.
+- Moderator assignment is configuration-based rather than persisted role administration.
+- Rate limiting and SignalR connection state are process-local. Multi-instance production requires edge-distributed rate limiting, sticky sessions, and a SignalR scale-out design.
+- Identity and application contexts share one SQL connection string while retaining separate DbContexts.
+- Email verification is not implemented.
+- The development JWT key is checked in for local use and must be overridden from a production secret manager.
 
-### Integration Tests (+2)
+## Frontend handoff
 
-- `ParticipantBindingApiTests` — gameplay and projection without binding return 403
+- Consume `src/Cluely.Api/openapi.json`.
+- Treat RFC 7807 `code` and `correlationId` as the stable error envelope.
+- Send `Authorization: Bearer` on protected operations.
+- Send a UUID `Idempotency-Key` on every retryable create/clone request and always on publish.
+- Configure the exact frontend origin through `Cors:AllowedOrigins`.
 
----
+## Validation
 
-## Validation Checklist
+Release validation requires:
 
-| Criterion | Status |
-|-----------|--------|
-| No business behavior changed | ✅ |
-| No ADR violated | ✅ |
-| No public API contract changed | ✅ |
-| No SignalR contract changed | ✅ |
-| No authentication flow changed | ✅ |
-| Domain framework-independent | ✅ |
-| Controllers thin | ✅ |
-| Hubs thin | ✅ |
-| SQL custody only | ✅ |
-| Visibility filter sole owner of hidden info | ✅ |
-| Architecture tests expanded | ✅ |
-| Integration tests expanded | ✅ |
-| All tests pass | ✅ |
-| Zero build warnings | ✅ |
+```bash
+dotnet restore
+dotnet build
+dotnet test tests/Cluely.UnitTests --no-build
+dotnet test tests/Cluely.ArchitectureTests --no-build
+dotnet test tests/Cluely.IntegrationTests --no-build
+```
 
----
-
-## Security Observations
-
-- Password hashing, refresh rotation, and token revocation unchanged and verified
-- No credentials logged
-- JWT claims remain identity-only
-- Production: rotate signing keys, enforce HTTPS, add gateway rate limiting
-
----
-
-## Performance Observations
-
-No measurable regressions. No optimizations applied without measurement. Existing patterns (single projection build per broadcast, compile-time event serializer) remain in place.
-
----
-
-## Remaining Accepted Debt
-
-See implementation decision log Phase 05.03 section. All high-priority fix-now items resolved.
-
----
-
-## Handover Notes for Frontend
-
-1. **Auth flow:** register → login → store access + refresh tokens → attach Bearer header
-2. **Room flow:** create/join (binding created server-side) → gameplay commands need no participantId
-3. **SignalR:** connect with JWT → `JoinRoom(roomId)` only
-4. **Errors:** parse `application/problem+json`; check `code` and `correlationId` extensions
-5. **Swagger:** `/swagger` in Development is the primary API reference
-
----
-
-## Self-Review
-
-The polish pass stayed within scope: one behavioral improvement (correct HTTP status for missing binding) that clients should treat as a bug fix, not a breaking change. No aggregate, handler, or contract modifications. Documentation and tests now match implementation. Backend is release-candidate quality.
+The release commit records the final counts and zero-warning/zero-skip result.
