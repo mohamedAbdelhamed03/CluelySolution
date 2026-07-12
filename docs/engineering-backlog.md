@@ -1,6 +1,6 @@
 # Engineering Backlog
 
-Every implementation review updates this file. Last reviewed: **Slice 04 Milestone A — Publishing Foundation, 2026-07-12**.
+Every implementation review updates this file. Last reviewed: **Slice 04 Milestone B — Dictionary Publishing, 2026-07-12**.
 
 | Field | Description |
 |-------|-------------|
@@ -32,6 +32,7 @@ Every implementation review updates this file. Last reviewed: **Slice 04 Milesto
 | TD-014 | Content validation constants traceability | Governance | Required | Open | `DictionaryValidation` implements max-word and word-length constants flagged by Feature Spec v1.1, but the frozen Business Constants Catalog does not contain their canonical entries. Governance must ratify the catalog references; implementation values remain unchanged. | — |
 | TD-015 | REC-5 unblock lifecycle mismatch | Slice 03 hardening | Required | Closed | Corrected `UnblockVersion` from `Blocked → Published` to the approved `Blocked → PendingReview`; review approval is now required before the Version becomes current/discoverable. | Slice 03 hardening |
 | TD-016 | ReportDictionary application/event contract | Slice 04 | Blocking | Closed | `ReportDictionary` application slice; domain `Report(OwnerId reporter)` lifecycle-only on Shared/Public visibility; `DictionaryReported` event. Authenticated reporters only (Z-3). | Slice 04 Milestone A |
+| TD-017 | Publish retry idempotency | Slice 09–10 | Required | Open | `PublishDictionary` generates the `VersionId` server-side (uniqueness upholds AI-CP-5, mirrors `CreateDictionary`), but the command carries no idempotency key, so a retried publish creates a new version. Define replay-safe publish intake with the persistence uniqueness boundary before external exposure. Relates to TD-003/TD-010. | — |
 
 ## Slice Review Workflow
 
