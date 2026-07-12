@@ -8,27 +8,21 @@ namespace Cluely.Application.Auth.Login;
 public sealed class LoginUserHandler
 {
     private readonly IUserRepository _userRepository;
-    private readonly IRefreshTokenRepository _refreshTokenRepository;
     private readonly IPasswordHasher _passwordHasher;
-    private readonly IJwtTokenService _jwtTokenService;
-    private readonly IRefreshTokenFactory _refreshTokenFactory;
+    private readonly IAuthenticationSessionIssuer _sessionIssuer;
     private readonly IValidator<LoginUserCommand> _validator;
     private readonly ILogger<LoginUserHandler> _logger;
 
     public LoginUserHandler(
         IUserRepository userRepository,
-        IRefreshTokenRepository refreshTokenRepository,
         IPasswordHasher passwordHasher,
-        IJwtTokenService jwtTokenService,
-        IRefreshTokenFactory refreshTokenFactory,
+        IAuthenticationSessionIssuer sessionIssuer,
         IValidator<LoginUserCommand> validator,
         ILogger<LoginUserHandler> logger)
     {
         _userRepository = userRepository;
-        _refreshTokenRepository = refreshTokenRepository;
         _passwordHasher = passwordHasher;
-        _jwtTokenService = jwtTokenService;
-        _refreshTokenFactory = refreshTokenFactory;
+        _sessionIssuer = sessionIssuer;
         _validator = validator;
         _logger = logger;
     }
@@ -48,7 +42,9 @@ public sealed class LoginUserHandler
 
         var normalizedEmail = command.Email.Trim().ToLowerInvariant();
         var user = await _userRepository.GetByEmailAsync(normalizedEmail, cancellationToken);
-        if (user is null || !_passwordHasher.VerifyPassword(command.Password, user.PasswordHash))
+        if (user is null
+            || string.IsNullOrWhiteSpace(user.PasswordHash)
+            || !_passwordHasher.VerifyPassword(command.Password, user.PasswordHash))
         {
             _logger.LogWarning("Rejected login attempt with invalid credentials.");
             return Result.Failure<LoginUserResult>(new BusinessError(
@@ -63,18 +59,15 @@ public sealed class LoginUserHandler
                 "Account is not active."));
         }
 
-        var accessToken = _jwtTokenService.CreateAccessToken(user.UserId, user.Email);
-        var refreshToken = _refreshTokenFactory.Create(user.UserId);
-        await _refreshTokenRepository.CreateAsync(refreshToken.Record, cancellationToken);
-
+        var session = await _sessionIssuer.IssueAsync(user.UserId, user.Email, cancellationToken);
         _logger.LogInformation("Successful login for user {UserId}.", user.UserId);
 
         return Result.Success(new LoginUserResult(
-            user.UserId,
-            user.Email,
-            accessToken.Token,
-            accessToken.ExpiresAt,
-            refreshToken.PlainTextToken,
-            refreshToken.Record.ExpiresAt));
+            session.UserId,
+            session.Email,
+            session.AccessToken,
+            session.AccessTokenExpiresAt,
+            session.RefreshToken,
+            session.RefreshTokenExpiresAt));
     }
 }

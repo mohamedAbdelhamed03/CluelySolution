@@ -82,3 +82,7 @@ public sealed record RefreshTokenResponse(
     DateTime RefreshTokenExpiresAt);
 
 public sealed record CurrentUserResponse(Guid UserId, string Email, string AccountStatus);
+
+public sealed record LinkExternalLoginResponse(string Provider);
+
+public sealed record UnlinkExternalLoginResponse(string Provider);

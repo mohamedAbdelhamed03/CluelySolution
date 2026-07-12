@@ -29,6 +29,24 @@ public sealed class RefreshTokenRequest
     public string RefreshToken { get; init; } = string.Empty;
 }
 
+public sealed class ExternalLoginRequest
+{
+    [Required]
+    public string Provider { get; init; } = string.Empty;
+
+    [Required]
+    public string Token { get; init; } = string.Empty;
+}
+
+public sealed class LinkExternalLoginRequest
+{
+    [Required]
+    public string Provider { get; init; } = string.Empty;
+
+    [Required]
+    public string Token { get; init; } = string.Empty;
+}
+
 public sealed class LogoutUserRequest
 {
     [Required]
