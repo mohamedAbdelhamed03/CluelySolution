@@ -9,6 +9,7 @@ using Cluely.Application.Auth.Refresh;
 using Cluely.Application.Auth.Register;
 using Cluely.Application.Common.Ports.Identity;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Cluely.Api.Controllers;
@@ -20,6 +21,7 @@ namespace Cluely.Api.Controllers;
 [Route("api/auth")]
 [Produces("application/json")]
 [Tags("Auth")]
+[EnableRateLimiting("auth")]
 public sealed class AuthController : ControllerBase
 {
     private readonly RegisterUserHandler _registerUserHandler;
