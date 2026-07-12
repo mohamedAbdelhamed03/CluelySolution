@@ -33,6 +33,7 @@ Every implementation review updates this file. Last reviewed: **Slice 04 Milesto
 | TD-015 | REC-5 unblock lifecycle mismatch | Slice 03 hardening | Required | Closed | Corrected `UnblockVersion` from `Blocked → Published` to the approved `Blocked → PendingReview`; review approval is now required before the Version becomes current/discoverable. | Slice 03 hardening |
 | TD-016 | ReportDictionary application/event contract | Slice 04 | Blocking | Closed | `ReportDictionary` application slice; domain `Report(OwnerId reporter)` lifecycle-only on Shared/Public visibility; `DictionaryReported` event. Authenticated reporters only (Z-3). | Slice 04 Milestone A |
 | TD-017 | Publish retry idempotency | Slice 09–10 | Required | Open | `PublishDictionary` generates the `VersionId` server-side (uniqueness upholds AI-CP-5, mirrors `CreateDictionary`), but the command carries no idempotency key, so a retried publish creates a new version. Define replay-safe publish intake with the persistence uniqueness boundary before external exposure. Relates to TD-003/TD-010. | — |
+| TD-018 | Moderator retire-version path | Slice 04 workflow | Required | Closed | Aligned version retirement with the moderation model per FR-CONTENT-084: domain `RetireVersion(ModeratorId, VersionId)` (no longer owner-scoped) and the `RetireVersion` handler now enforces the `IContentModeratorAccessor` seam like the other moderation handlers. | feature/content-workflow |
 
 ## Slice Review Workflow
 

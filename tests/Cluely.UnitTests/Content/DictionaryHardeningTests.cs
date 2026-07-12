@@ -115,9 +115,10 @@ public sealed class DictionaryHardeningTests
         dictionary.AddWords(owner, DictionaryTestData.ValidWordBatch(25));
         var versionId = VersionId.New();
         DictionaryTestData.ValidateAndPublish(dictionary, owner, versionId, DateTime.UtcNow);
-        dictionary.RetireVersion(owner, versionId);
+        var moderator = ModeratorId.From(Guid.NewGuid());
+        dictionary.RetireVersion(moderator, versionId);
 
-        Action action = () => dictionary.RetireVersion(owner, versionId);
+        Action action = () => dictionary.RetireVersion(moderator, versionId);
 
         action.Should().Throw<VersionLifecycleException>();
     }
