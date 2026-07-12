@@ -220,6 +220,85 @@ public sealed class DictionaryHardeningTests
         dictionary.Draft.Words.Count.Should().Be(0);
     }
 
+    [Fact]
+    public void AddWords_WhenDuplicateFails_ShouldNotChangeStateVersionOrEvents()
+    {
+        var owner = OwnerId.From(Guid.NewGuid());
+        var dictionary = CreateDictionary(owner);
+        dictionary.AddWords(owner, ["alpha"]);
+        dictionary.ClearPendingEvents();
+        var versionBeforeFailure = dictionary.Version;
+
+        Action action = () => dictionary.AddWords(owner, ["beta", " ALPHA "]);
+
+        action.Should().Throw<DuplicateWordException>();
+        dictionary.Draft.Words.Words.Select(word => word.Value).Should().Equal("alpha");
+        dictionary.Version.Should().Be(versionBeforeFailure);
+        dictionary.GetPendingEvents().Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Publish_WhenDraftIsInvalid_ShouldNotAdvanceVersionLabelOrRaiseEvent()
+    {
+        var owner = OwnerId.From(Guid.NewGuid());
+        var dictionary = CreateDictionary(owner);
+        dictionary.AddWords(owner, DictionaryTestData.ValidWordBatch(DictionaryValidation.MinWords - 1));
+        dictionary.ClearPendingEvents();
+        var aggregateVersionBeforeFailure = dictionary.Version;
+        var nextLabelBeforeFailure = dictionary.NextVersionLabel;
+
+        Action action = () => dictionary.Publish(owner, VersionId.New(), DateTime.UtcNow);
+
+        action.Should().Throw<DraftTooSmallException>();
+        dictionary.Versions.Should().BeEmpty();
+        dictionary.CurrentVersionId.Should().BeNull();
+        dictionary.NextVersionLabel.Should().Be(nextLabelBeforeFailure);
+        dictionary.Version.Should().Be(aggregateVersionBeforeFailure);
+        dictionary.GetPendingEvents().Should().BeEmpty();
+    }
+
+    [Fact]
+    public void CloneFrom_ShouldRaiseCreatedBeforeCloned()
+    {
+        var owner = OwnerId.From(Guid.NewGuid());
+        var source = CreateDictionary(owner);
+        source.AddWords(owner, DictionaryTestData.ValidWordBatch(DictionaryValidation.MinWords));
+        var versionId = VersionId.New();
+        DictionaryTestData.ValidateAndPublish(source, owner, versionId, DateTime.UtcNow);
+
+        var clone = Dictionary.CloneFrom(
+            DictionaryId.New(),
+            OwnerId.From(Guid.NewGuid()),
+            source,
+            source.GetVersion(versionId),
+            DictionaryTestData.DefaultMetadata());
+
+        clone.GetPendingEvents().Select(domainEvent => domainEvent.GetType()).Should().Equal(
+            typeof(DictionaryCreated),
+            typeof(DictionaryCloned));
+    }
+
+    [Fact]
+    public void RejectReview_ShouldRestorePublishedVersionAsCurrent()
+    {
+        var owner = OwnerId.From(Guid.NewGuid());
+        var dictionary = CreateDictionary(owner);
+        dictionary.AddWords(owner, DictionaryTestData.ValidWordBatch(DictionaryValidation.MinWords));
+        dictionary.SetVisibility(owner, Visibility.Shared);
+        var versionId = VersionId.New();
+        DictionaryTestData.ValidateAndPublish(dictionary, owner, versionId, DateTime.UtcNow);
+        dictionary.SetVisibility(owner, Visibility.Public);
+        dictionary.SubmitVersionForReview(owner, versionId);
+        dictionary.ClearPendingEvents();
+
+        dictionary.RejectReview(owner, versionId);
+
+        dictionary.GetVersion(versionId).LifecycleState.Should().Be(VersionLifecycleState.Published);
+        dictionary.CurrentVersionId.Should().Be(versionId);
+        dictionary.GetPendingEvents().Should().ContainSingle()
+            .Which.Should().BeOfType<ReviewRejected>();
+    }
+
     private static Dictionary CreateDictionary(OwnerId? owner = null)
     {
         return Dictionary.Create(

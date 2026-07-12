@@ -112,7 +112,7 @@ and approval workflow, deprecation, ownership, revision history, future numberin
 | Software Architecture | ✅ Complete — Discovery/Decomposition (01–11) + ADR-000…ADR-010 |
 | Software Design | ✅ Complete (MVP logical design) — Domain Model, Module Decomposition, C4 L1/L2, Aggregate Design, Application Layer (01–06) |
 | Technical Design → Operations | ⏳ Not started (folders scaffolded) |
-| Content Platform (post-MVP feature) | 🚧 In progress — Vision, Feature Spec v1.1, [ADR-011](07-software-architecture/12-decisions/ADR-011-content-platform-ownership-publication-versioning-sharing.md), Pre-Impl Review, Implementation Plan ([15-content-platform](15-content-platform/)); Slice 00 implemented |
+| Content Platform (post-MVP feature) | 🚧 In progress — Slices 00–03 implemented; publishing not started. See [Feature Spec v1.1](15-content-platform/02-feature-specification.md), [ADR-011](07-software-architecture/12-decisions/ADR-011-content-platform-ownership-publication-versioning-sharing.md), [Implementation Plan v1.1](15-content-platform/04-implementation-plan.md), and the [Engineering Backlog](engineering-backlog.md). |
 
 ## 9. Future Planned Documentation
 

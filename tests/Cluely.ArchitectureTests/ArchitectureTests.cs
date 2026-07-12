@@ -691,4 +691,62 @@ public class ArchitectureTests(ITestOutputHelper testOutputHelper)
             .Should()
             .Be(typeof(IReadOnlyList<Domain.Content.ValueObjects.Word>));
     }
+
+    [Fact]
+    public void Content_Entities_And_ValueObjects_Should_Not_Produce_Domain_Events()
+    {
+        var result = Types.InAssembly(DomainAssembly)
+            .That()
+            .ResideInNamespace("Cluely.Domain.Content.Entities")
+            .Or()
+            .ResideInNamespace("Cluely.Domain.Content.ValueObjects")
+            .ShouldNot()
+            .HaveDependencyOn("Cluely.Domain.Content.Events")
+            .GetResult();
+
+        result.IsSuccessful.Should().BeTrue();
+    }
+
+    [Fact]
+    public void DictionaryDraft_Should_Not_Depend_On_DictionaryVersion()
+    {
+        var result = Types.InAssembly(DomainAssembly)
+            .That()
+            .HaveName(nameof(Domain.Content.Entities.DictionaryDraft))
+            .ShouldNot()
+            .HaveDependencyOn("Cluely.Domain.Content.Entities.DictionaryVersion")
+            .GetResult();
+
+        result.IsSuccessful.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Content_Domain_Should_Not_Use_Serialization_Attributes()
+    {
+        var offenders = DomainAssembly.GetTypes()
+            .Where(type => type.Namespace?.StartsWith("Cluely.Domain.Content", StringComparison.Ordinal) == true)
+            .SelectMany(type => type.GetCustomAttributes(inherit: true)
+                .Concat(type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+                    .SelectMany(property => property.GetCustomAttributes(inherit: true))))
+            .Where(attribute => attribute.GetType().Namespace is "System.Text.Json.Serialization"
+                or "Newtonsoft.Json"
+                or "System.Runtime.Serialization")
+            .Select(attribute => attribute.GetType().FullName)
+            .ToList();
+
+        offenders.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Content_Domain_Should_Not_Depend_On_Reflection()
+    {
+        var result = Types.InAssembly(DomainAssembly)
+            .That()
+            .ResideInNamespace("Cluely.Domain.Content")
+            .ShouldNot()
+            .HaveDependencyOn("System.Reflection")
+            .GetResult();
+
+        result.IsSuccessful.Should().BeTrue();
+    }
 }

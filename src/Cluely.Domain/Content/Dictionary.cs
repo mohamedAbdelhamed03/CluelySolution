@@ -17,6 +17,10 @@ public sealed class Dictionary : AggregateRoot<DictionaryId>
     public DictionaryState State { get; private set; }
     public DictionaryMetadata Metadata { get; private set; }
     public DictionaryDraft Draft { get; }
+
+    /// <summary>
+    /// Exposes the Draft size without leaking Draft internals into Application handlers.
+    /// </summary>
     public int DraftWordCount => Draft.Words.Count;
     public Provenance? Provenance { get; }
     public VersionId? CurrentVersionId { get; private set; }
@@ -455,7 +459,7 @@ public sealed class Dictionary : AggregateRoot<DictionaryId>
             throw new VersionLifecycleException("Version is not blocked.");
         }
 
-        version.TransitionTo(VersionLifecycleState.Published);
+        version.TransitionTo(VersionLifecycleState.PendingReview);
         RecomputeCurrentVersion();
         AddDomainEvent(new VersionUnblocked(Id, versionId));
         IncrementVersion();

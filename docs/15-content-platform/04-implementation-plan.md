@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Author role** | Principal .NET Engineer — implementation planning |
-| **Version** | 1.0 |
+| **Version** | 1.1 |
 | **Status** | Plan — **no code**; architecture frozen, no redesign |
 | **Inputs (frozen)** | [01 Vision](01-business-vision.md), [02 Feature Spec v1.1](02-feature-specification.md), [ADR-011](../07-software-architecture/12-decisions/ADR-011-content-platform-ownership-publication-versioning-sharing.md), [03 Pre-Impl Review](03-pre-implementation-architecture-review.md). |
 | **Standards** | [Implementation Planning Standard](../10-implementation/implementation-planning-standard.md), [Definition of Done](../10-implementation/definition-of-done.md), [Simplicity Principles](../10-implementation/simplicity-principles.md). |
@@ -132,20 +132,21 @@ block-reversibility → 04; anonymous-host scope → 08; server-side visibility 
 
 ---
 
-### Slice 03 — Word Management & Import
-- **Goal:** Edit the Draft — add/remove/update words and import a word collection — with normalization,
-  de-duplication, and per-rule reject reporting.
-- **Scope:** Draft-editing application slices + import (logical, no format).
-- **Domain changes:** none (Draft behavior already in Slice 01); confirm `WordSet` operations cover add/remove/update.
-- **Application changes:** `Content/AddWords`, `RemoveWord`, `UpdateWord`, `DiscardDraft`, `ImportWords`
-  (append/replace) with reject reporting (FR-CONTENT-060/061); owner-authorized.
-- **Infrastructure changes:** none (import *encoding* is out of scope — the command takes an already-parsed word
-  collection; parsing/format is a future/API concern, not here).
+### Slice 03 — Content Authoring
+- **Goal:** Own the complete Draft-authoring capability: add/remove/replace words, bulk authoring,
+  normalization, duplicate detection, limits, and validation reporting.
+- **Scope:** `AddWord`, `RemoveWord`, `ReplaceWord`, `BulkAddWords`, and `ValidateDraft` vertical slices.
+- **Domain changes:** resolve approved word-normalization and deterministic batch-duplicate behavior in
+  `Word`/`WordSet`; reuse `DictionaryValidation` and `DraftValidationReport`.
+- **Application changes:** owner-authorized `Content/AddWord`, `RemoveWord`, `ReplaceWord`, `BulkAddWords`,
+  and `ValidateDraft` handlers against the Slice 02 repository port.
+- **Infrastructure changes:** none.
 - **API changes:** none yet.
-- **Tests (`Cluely.UnitTests`):** normalization/dedup, blank rejection, max-words & per-word bounds (V-CONTENT-4/5),
-  append vs replace, reject-report without failing the batch, discard reverts to last published (or empty).
+- **Tests (`Cluely.UnitTests`):** normalization/dedup (including Unicode whitespace), blank rejection,
+  max/min words and per-word bounds, deterministic bulk behavior, validation reports, failure paths,
+  ownership, event publication, and no event on failure.
 - **Dependencies:** Slice 01, Slice 02 (repository port).
-- **Risks:** import batch semantics; keep words-only (FR-CONTENT-063).
+- **Risks:** command intake idempotency remains coordinated with persistence/API slices.
 - **Complexity:** **M**
 - **Review traceability:** §9 validation, §15 domain tests.
 
@@ -302,11 +303,13 @@ block-reversibility → 04; anonymous-host scope → 08; server-side visibility 
 
 ---
 
-### Slice 11 — Architecture Tests
-- **Goal:** Encode the fitness functions and dependency rules as executable architecture tests.
-- **Scope:** `Cluely.ArchitectureTests` additions.
+### Slice 11 — Architecture Hardening
+- **Goal:** Review, gap-analyze, and harden the architecture rules accumulated continuously in Slices 00–10.
+- **Scope:** architecture review, missing-rule analysis, targeted `Cluely.ArchitectureTests` additions, and
+  regression protection.
 - **Domain/App/Infra/API changes:** none.
-- **Tests:** AT-1 (Content ⟂ Gameplay dependency direction), AT-2/FF-CP-001 (no gameplay mutates Dictionary),
+- **Tests:** review the incrementally implemented rules, then close remaining gaps for AT-1 (Content ⟂ Gameplay
+  dependency direction), AT-2/FF-CP-001 (no gameplay mutates Dictionary),
   AT-3 (published Version type exposes no mutator), AT-4/FF-CP-004 (≤1 Draft), AT-5/FF-CP-003 (exactly one owner),
   AT-6 (room holds identity+words), AT-7/FF-CP-002/007 (no draft/non-current/private to non-owner), AT-8/SEC-2
   (server-side visibility), AT-9/FF-CP-009 (public needs approved Version), AT-10/FF-CP-010 (moderation lifecycle-
@@ -451,4 +454,5 @@ Platform slice is **Done** only when **all** hold:
 ## Revision History
 | Version | Date | Change |
 |---------|------|--------|
+| 1.1 | 2026-07-12 | Renamed Slice 03 to Content Authoring and aligned its scope with the implemented Draft commands; reframed Slice 11 as architecture hardening because architecture tests are added continuously. |
 | 1.0 | 2026-07-11 | Initial implementation plan: 13 slices (00 Foundations + 01–12) with Name/Goal/Scope/Domain/Application/Infrastructure/API/Tests/Dependencies/Risks/Complexity; two load-bearing planning decisions (port-first horizontal layering; Authentication-seam dependency); dependency graph, critical path, parallelizable work, high-risk areas, recommended order, and per-slice Definition of Done. Grounded in the observed solution layout and the Pre-Implementation Review entry criteria. No code; architecture unchanged. |

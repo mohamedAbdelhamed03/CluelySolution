@@ -3,6 +3,7 @@ using Cluely.Application.Common.Ports.Content;
 using Cluely.Application.Common.Ports.Identity;
 using Cluely.Application.Common.Results;
 using Cluely.Domain.Common;
+using Cluely.Domain.Content;
 using Cluely.Domain.Content.ValueObjects;
 using FluentValidation;
 
@@ -58,19 +59,11 @@ public sealed class ValidateDraftHandler
 
         var owner = OwnerId.From(userId);
 
+        DraftValidationReport report;
+
         try
         {
-            var report = dictionary.ValidateDraft(owner);
-
-            await _dictionaryRepository.UpdateAsync(dictionary, cancellationToken);
-            await _eventPublisher.PublishAsync(dictionary.GetPendingEvents(), cancellationToken);
-            dictionary.ClearPendingEvents();
-
-            return Result.Success(new ValidateDraftResult(
-                command.DictionaryId,
-                report.IsValid,
-                report.Errors,
-                dictionary.DraftWordCount));
+            report = dictionary.ValidateDraft(owner);
         }
         catch (DomainException ex)
         {
@@ -83,5 +76,15 @@ public sealed class ValidateDraftHandler
                 "An unexpected error occurred.",
                 ex));
         }
+
+        await _dictionaryRepository.UpdateAsync(dictionary, cancellationToken);
+        await _eventPublisher.PublishAsync(dictionary.GetPendingEvents(), cancellationToken);
+        dictionary.ClearPendingEvents();
+
+        return Result.Success(new ValidateDraftResult(
+            command.DictionaryId,
+            report.IsValid,
+            report.Errors,
+            dictionary.DraftWordCount));
     }
 }

@@ -242,7 +242,7 @@ public sealed class DictionaryTests
     }
 
     [Fact]
-    public void BlockAndUnblock_ShouldRecomputeCurrentVersion()
+    public void BlockAndUnblock_ShouldRequireReviewBeforeBecomingCurrent()
     {
         var owner = OwnerId.From(Guid.NewGuid());
         var dictionary = CreateDictionary(owner);
@@ -254,6 +254,10 @@ public sealed class DictionaryTests
         dictionary.CurrentVersionId.Should().BeNull();
 
         dictionary.UnblockVersion(owner, versionId);
+        dictionary.GetVersion(versionId).LifecycleState.Should().Be(VersionLifecycleState.PendingReview);
+        dictionary.CurrentVersionId.Should().BeNull();
+
+        dictionary.ApproveReview(owner, versionId);
         dictionary.CurrentVersionId.Should().Be(versionId);
     }
 

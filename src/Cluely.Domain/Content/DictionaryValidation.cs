@@ -1,5 +1,10 @@
 namespace Cluely.Domain.Content;
 
+/// <summary>
+/// Content-authoring limits used by <see cref="DraftValidationReport"/> and Content value objects.
+/// The minimum word count preserves INV-D2; remaining operational limits originate in Feature
+/// Specification v1.1 validation rules V-CONTENT-4 and V-CONTENT-5.
+/// </summary>
 public static class DictionaryValidation
 {
     public const int MinWords = 25;
