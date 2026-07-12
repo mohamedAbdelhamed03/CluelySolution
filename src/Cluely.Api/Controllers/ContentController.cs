@@ -11,6 +11,7 @@ using Cluely.Application.Content.RenameDictionary;
 using Cluely.Application.Content.ReplaceWord;
 using Cluely.Application.Content.RestoreDictionary;
 using Cluely.Application.Content.ValidateDraft;
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -178,19 +179,25 @@ public sealed class ContentController : ControllerBase
             new ValidateContentResponse(value.DictionaryId, value.IsValid, value.Errors, value.WordCount));
     }
 
-    /// <summary>Publishes the dictionary's draft into a new immutable version.</summary>
+    /// <summary>
+    /// Publishes the dictionary's draft into a new immutable version.
+    /// Repeating the request with the same Idempotency-Key returns the original version.
+    /// </summary>
     [HttpPost("{id:guid}/publish")]
     [ProducesResponseType(typeof(PublishContentResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Publish(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> Publish(
+        Guid id,
+        [FromHeader(Name = IdempotencyKeyAccessor.HeaderName), Required] Guid? idempotencyKey,
+        CancellationToken cancellationToken)
     {
         var result = await _publishHandler.HandleAsync(
             new PublishDictionaryCommand(
                 id,
                 CorrelationIdAccessor.GetCorrelationId(HttpContext),
-                IdempotencyKeyAccessor.GetIdempotencyKey(HttpContext)),
+                idempotencyKey!.Value),
             cancellationToken);
 
         return result.ToActionResult(this, value =>

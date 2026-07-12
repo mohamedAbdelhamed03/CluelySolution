@@ -78,6 +78,32 @@ Identity is separate from room participation. After create/join, the API stores 
 | GET | `/api/rooms/{roomId}/projection` | Bearer | Role-filtered projection |
 | GET | `/api/rooms/{roomId}/participants` | Bearer | Participant list |
 
+### Content
+
+All content endpoints require a bearer token.
+
+| Capability | Endpoints |
+|------------|-----------|
+| Lifecycle | `POST /api/content`, `PATCH/DELETE /api/content/{id}`, `POST /api/content/{id}/restore` |
+| Authoring | `POST/DELETE/PATCH /api/content/{id}/words`, `POST /api/content/{id}/validate` |
+| Publishing | `POST /api/content/{id}/publish` |
+| Discovery | `GET /api/content/mine`, `GET /api/content/discover`, `GET /api/content/{id}`, `GET /api/content/{id}/versions` |
+| Sharing | `POST /api/content/{id}/share`, `DELETE /api/content/{id}/share/{userId}`, `POST /api/content/{id}/clone` |
+| Moderation | `POST /submit-review`, `/approve`, `/reject`, `/block`, `/unblock`, and `/retire` under `/api/content/{id}` |
+
+### Idempotency
+
+- `POST /api/content/{id}/publish` requires an `Idempotency-Key` header containing a UUID.
+- Repeating publish with the same key and dictionary returns the original version and does not create a duplicate.
+- Create and clone accept the same header optionally; clients should send and retain a key whenever a request may be retried.
+- Reusing a publish key for another dictionary returns `409 IdempotencyKeyConflict`.
+
+```http
+POST /api/content/6d67d4fd-b400-4e54-9d88-2a8d324590b6/publish HTTP/1.1
+Authorization: Bearer {accessToken}
+Idempotency-Key: 7e7d0195-1d35-4ec8-b6d5-8d79fb77b509
+```
+
 ## Error Mapping
 
 | Failure | HTTP Status |
@@ -95,11 +121,16 @@ All error responses include `code` and `correlationId` extensions in ProblemDeta
 
 - Store `Jwt:SigningKey` in a secret manager, not source control.
 - Terminate TLS at the edge; require HTTPS for token transmission.
-- Apply login rate limiting at the API gateway or reverse proxy (not implemented in MVP — see technical debt TD-0502-05).
+- Configure `Cors:AllowedOrigins` with exact frontend origins; the default empty list denies cross-origin requests.
+- Configure moderator user IDs through `ContentModeration:ModeratorUserIds`.
+- The API applies global and authentication-specific rate limits. The edge proxy should add distributed limits for multi-instance deployments.
+- Request bodies are limited to 1 MiB by Kestrel by default; enforce the same or a lower limit at the reverse proxy.
 
 ## OpenAPI
 
 Swagger UI is available in Development at `/swagger`.
+
+Every successful build writes the frontend-consumable OpenAPI 3.0 document to `src/Cluely.Api/openapi.json`. The artifact includes bearer requirements per protected operation, ProblemDetails responses, XML summaries, and idempotency header requirements.
 
 ## SignalR
 
