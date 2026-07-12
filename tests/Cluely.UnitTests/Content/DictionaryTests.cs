@@ -310,15 +310,15 @@ public sealed class DictionaryTests
         source.AddWords(owner, DictionaryTestData.ValidWordBatch(25));
         var sourceVersionId = VersionId.New();
         DictionaryTestData.ValidateAndPublish(source, owner, sourceVersionId, DateTime.UtcNow);
-        var sourceVersion = source.GetVersion(sourceVersionId);
 
         var cloner = OwnerId.From(Guid.NewGuid());
         var clone = Dictionary.CloneFrom(
             DictionaryId.New(),
             cloner,
             source,
-            sourceVersion,
-            DictionaryMetadata.Create("Clone", "cloned", [], "en"));
+            sourceVersionId,
+            DictionaryMetadata.Create("Clone", "cloned", [], "en"),
+            DateTime.UtcNow);
 
         clone.Owner.Should().Be(cloner);
         clone.Provenance!.SourceVersionId.Should().Be(sourceVersionId);

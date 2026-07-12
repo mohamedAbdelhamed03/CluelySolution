@@ -24,15 +24,15 @@ public sealed class DictionaryHardeningTests
         source.AddWords(owner, DictionaryTestData.ValidWordBatch(25));
         var sourceVersionId = VersionId.New();
         DictionaryTestData.ValidateAndPublish(source, owner, sourceVersionId, DateTime.UtcNow);
-        var sourceVersion = source.GetVersion(sourceVersionId);
 
         var cloner = OwnerId.From(Guid.NewGuid());
         var clone = Dictionary.CloneFrom(
             DictionaryId.New(),
             cloner,
             source,
-            sourceVersion,
-            DictionaryMetadata.Create("Clone", "cloned", [], "en"));
+            sourceVersionId,
+            DictionaryMetadata.Create("Clone", "cloned", [], "en"),
+            DateTime.UtcNow);
 
         clone.AddWords(cloner, ["cloneonly"]);
         source.AddWords(owner, ["sourceonly"]);
@@ -59,14 +59,14 @@ public sealed class DictionaryHardeningTests
         other.AddWords(otherOwner, DictionaryTestData.ValidWordBatch(25));
         var otherVersionId = VersionId.New();
         DictionaryTestData.ValidateAndPublish(other, otherOwner, otherVersionId, DateTime.UtcNow);
-        var foreignVersion = other.GetVersion(otherVersionId);
 
         Action action = () => Dictionary.CloneFrom(
             DictionaryId.New(),
             OwnerId.From(Guid.NewGuid()),
             source,
-            foreignVersion,
-            DictionaryMetadata.Create("Clone", "cloned", [], "en"));
+            otherVersionId,
+            DictionaryMetadata.Create("Clone", "cloned", [], "en"),
+            DateTime.UtcNow);
 
         action.Should().Throw<VersionNotFoundException>();
     }
@@ -271,8 +271,9 @@ public sealed class DictionaryHardeningTests
             DictionaryId.New(),
             OwnerId.From(Guid.NewGuid()),
             source,
-            source.GetVersion(versionId),
-            DictionaryTestData.DefaultMetadata());
+            versionId,
+            DictionaryTestData.DefaultMetadata(),
+            DateTime.UtcNow);
 
         clone.GetPendingEvents().Select(domainEvent => domainEvent.GetType()).Should().Equal(
             typeof(DictionaryCreated),
