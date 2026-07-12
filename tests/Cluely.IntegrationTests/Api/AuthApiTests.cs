@@ -134,6 +134,30 @@ public sealed class AuthApiTests
     }
 
     [Fact]
+    public async Task Refresh_ConcurrentReplay_AllowsExactlyOneRotation()
+    {
+        await using var factory = await CreateFactoryAsync();
+        using var registrationClient = factory.CreateClient();
+        var login = await AuthTestHelper.RegisterAndLoginAsync(registrationClient);
+        using var firstClient = factory.CreateClient();
+        using var secondClient = factory.CreateClient();
+
+        var firstRequest = firstClient.PostAsJsonAsync("/api/auth/refresh", new RefreshTokenRequest
+        {
+            RefreshToken = login.RefreshToken
+        });
+        var secondRequest = secondClient.PostAsJsonAsync("/api/auth/refresh", new RefreshTokenRequest
+        {
+            RefreshToken = login.RefreshToken
+        });
+
+        var responses = await Task.WhenAll(firstRequest, secondRequest);
+
+        responses.Count(response => response.StatusCode == HttpStatusCode.OK).Should().Be(1);
+        responses.Count(response => response.StatusCode == HttpStatusCode.Unauthorized).Should().Be(1);
+    }
+
+    [Fact]
     public async Task Logout_RevokesRefreshToken()
     {
         await using var factory = await CreateFactoryAsync();

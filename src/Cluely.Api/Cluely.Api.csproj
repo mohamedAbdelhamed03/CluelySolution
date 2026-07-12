@@ -26,4 +26,11 @@
     </PackageReference>
   </ItemGroup>
 
+  <Target Name="GenerateOpenApiArtifact"
+          AfterTargets="Build"
+          Condition="'$(DesignTimeBuild)' != 'true'">
+    <Exec Command="dotnet &quot;$(TargetPath)&quot; --generate-openapi &quot;$(MSBuildProjectDirectory)\openapi.json&quot;"
+          EnvironmentVariables="ASPNETCORE_ENVIRONMENT=OpenApiGeneration" />
+  </Target>
+
 </Project>

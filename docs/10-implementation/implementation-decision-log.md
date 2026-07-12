@@ -175,6 +175,30 @@ This document records implementation-level decisions that help future maintainer
 - **Trade-offs**: Requires DB write on each refresh; acceptable for MVP session continuity.
 - **References**: Phase 05.02 security requirements.
 
+### 2026-07-12: Atomic Refresh Token Rotation
+- **Component**: Cluely.Application.Auth / Cluely.Infrastructure.Identity
+- **Decision**: Revoke the current refresh token and insert its replacement in one SQL transaction using a conditional update.
+- **Reason**: Two concurrent refresh requests must not both succeed after reading the same active token.
+- **Alternatives Considered**: Process-local locks (rejected — unsafe across replicas); accepting sequential-only replay protection (rejected).
+- **Trade-offs**: Rotation now requires a database transaction and one conditional update.
+- **References**: Backend RC1 security review.
+
+### 2026-07-12: Deployment-Controlled Content Moderator Allow-List
+- **Component**: Cluely.Infrastructure.Identity
+- **Decision**: Resolve `IContentModeratorAccessor` from `ContentModeration:ModeratorUserIds`.
+- **Reason**: Replace the deny-all placeholder while preserving the frozen Application authorization seam and JWT contract.
+- **Alternatives Considered**: Adding persisted roles or new JWT claims (rejected — feature and contract change).
+- **Trade-offs**: Moderator assignments require configuration deployment; persisted role management remains future work.
+- **References**: Backend RC1 security review, REC-1.
+
+### 2026-07-12: Build-Time OpenAPI Artifact
+- **Component**: Cluely.Api
+- **Decision**: Generate `openapi.json` after API build from the runtime Swashbuckle document provider.
+- **Reason**: Keep frontend client generation and Development Swagger UI on one source of API metadata.
+- **Alternatives Considered**: Separate handwritten contract (rejected — drift risk); replacing Swashbuckle during stabilization (rejected — unnecessary migration).
+- **Trade-offs**: API build starts the configured host in an inert generation mode without opening a network listener.
+- **References**: Backend RC1 frontend-integration readiness.
+
 ---
 
 ## Phase 05.02 — Technical Debt Report (2026-07-11)

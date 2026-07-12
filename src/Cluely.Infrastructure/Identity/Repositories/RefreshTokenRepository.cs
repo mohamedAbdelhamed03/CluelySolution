@@ -57,6 +57,46 @@ public sealed class RefreshTokenRepository : IRefreshTokenRepository
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<bool> RotateAsync(
+        Guid currentTokenId,
+        RefreshTokenRecord replacement,
+        CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+
+        var revokedAt = DateTime.UtcNow;
+        var affectedRows = await _dbContext.RefreshTokens
+            .Where(token => token.Id == currentTokenId
+                && token.RevokedAt == null
+                && token.ExpiresAt > revokedAt)
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(token => token.RevokedAt, revokedAt)
+                    .SetProperty(token => token.ReplacedByTokenHash, replacement.TokenHash),
+                cancellationToken);
+
+        if (affectedRows != 1)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            return false;
+        }
+
+        _dbContext.RefreshTokens.Add(new RefreshTokenEntity
+        {
+            Id = replacement.Id,
+            UserId = replacement.UserId,
+            TokenHash = replacement.TokenHash,
+            ExpiresAt = replacement.ExpiresAt,
+            CreatedAt = replacement.CreatedAt,
+            RevokedAt = replacement.RevokedAt,
+            ReplacedByTokenHash = replacement.ReplacedByTokenHash,
+        });
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return true;
+    }
+
     public async Task RevokeAllForUserAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         var tokens = await _dbContext.RefreshTokens

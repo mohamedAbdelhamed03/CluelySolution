@@ -67,8 +67,17 @@ public sealed class RefreshTokenHandler
         }
 
         var newRefreshToken = _refreshTokenFactory.Create(user.UserId);
-        await _refreshTokenRepository.RevokeAsync(existing.Id, newRefreshToken.Record.TokenHash, cancellationToken);
-        await _refreshTokenRepository.CreateAsync(newRefreshToken.Record, cancellationToken);
+        var rotated = await _refreshTokenRepository.RotateAsync(
+            existing.Id,
+            newRefreshToken.Record,
+            cancellationToken);
+        if (!rotated)
+        {
+            _logger.LogWarning("Rejected replayed refresh token request for user {UserId}.", user.UserId);
+            return Result.Failure<RefreshTokenResult>(new BusinessError(
+                "InvalidRefreshToken",
+                "Refresh token is invalid or expired."));
+        }
 
         var accessToken = _jwtTokenService.CreateAccessToken(user.UserId, user.Email);
 

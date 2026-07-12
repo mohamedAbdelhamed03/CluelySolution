@@ -22,7 +22,8 @@ Implementation guidance and standards; not architecture/design decisions, not bu
 | 05 | [Global Engineering Implementation Standard](global-engineering-implementation-standard.md) | Mandatory engineering workflow for every implementation phase. |
 | 06 | [Definition of Done](definition-of-done.md) | Mandatory criteria for completion of any implementation task. |
 | 07 | [Technical Debt Policy](technical-debt-policy.md) | Policy for managing and documenting technical debt. |
-| 08 | [Backend Release Candidate Report](backend-release-candidate-report.md) | Phase 05.03 release readiness summary. |
+| 08 | [Backend Release Candidate Report](backend-release-candidate-report.md) | RC1 production-readiness, security, performance, and accepted-debt assessment. |
+| 09 | [Backend RC1 Release Notes](backend-rc1-release-notes.md) | Deployment-facing summary of RC1 changes and compatibility. |
 
 ## Dependencies
 - **Input:** [09 Technical Design](../09-technical-design/README.md).

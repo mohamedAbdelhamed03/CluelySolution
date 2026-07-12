@@ -9,6 +9,7 @@ using Cluely.Infrastructure.Delivery.Connections;
 using Cluely.Infrastructure.Delivery.Dispatch;
 using Cluely.Infrastructure.Delivery.Projections;
 using Cluely.Infrastructure.Delivery.Visibility;
+using Cluely.Infrastructure.Health;
 using Cluely.Infrastructure.Persistence;
 using Cluely.Infrastructure.Persistence.DictionaryStore;
 using Cluely.Infrastructure.Persistence.RoomCustody;
@@ -38,7 +39,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IDictionaryRepository, SqlDictionaryRepository>();
         services.AddScoped<IContentCommandIdempotencyStore, SqlContentCommandIdempotencyStore>();
         services.AddScoped<IDictionaryReadModelProvider, DictionaryReadModelProvider>();
-        services.AddScoped<IContentModeratorAccessor, UnavailableContentModeratorAccessor>();
+        services.AddScoped<IContentModeratorAccessor, ConfiguredContentModeratorAccessor>();
 
         services.AddSingleton<IConnectionRegistry, ConnectionRegistry>();
         services.AddSingleton<IProjectionBuilder, ProjectionBuilder>();
@@ -52,6 +53,12 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton<IGuidGenerator, GuidGenerator>();
         services.AddSingleton<IRoomCodeGenerator, RoomCodeGenerator>();
+
+        services.AddHealthChecks()
+            .AddCheck<PrimaryDatabaseHealthCheck>("sql", tags: ["ready", "database"])
+            .AddCheck<IdentityDatabaseHealthCheck>("identity", tags: ["ready", "database"])
+            .AddCheck<ContentPersistenceHealthCheck>("content", tags: ["ready", "database"])
+            .AddCheck<SignalRDeliveryHealthCheck>("signalr", tags: ["ready", "delivery"]);
 
         return services;
     }

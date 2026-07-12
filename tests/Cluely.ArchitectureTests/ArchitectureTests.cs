@@ -104,6 +104,36 @@ public class ArchitectureTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    public void Room_Query_Handlers_Should_Not_Depend_On_Write_Ports()
+    {
+        var result = Types.InAssembly(ApplicationAssembly)
+            .That()
+            .ResideInNamespace("Cluely.Application.Queries")
+            .ShouldNot()
+            .HaveDependencyOnAny(
+                "Cluely.Application.Common.Ports.IDomainEventPublisher",
+                "Cluely.Application.Common.Ports.IRoomCustody")
+            .GetResult();
+
+        result.IsSuccessful.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Application_Results_Should_Not_Expose_Domain_Entities()
+    {
+        var result = Types.InAssembly(ApplicationAssembly)
+            .That()
+            .HaveNameEndingWith("Result")
+            .ShouldNot()
+            .HaveDependencyOnAny(
+                "Cluely.Domain.Content.Entities",
+                "Cluely.Domain.Room.Entities")
+            .GetResult();
+
+        result.IsSuccessful.Should().BeTrue();
+    }
+
+    [Fact]
     public void Read_Models_Should_Not_Expose_Domain_Entities()
     {
         var result = Types.InAssembly(ApplicationAssembly)

@@ -31,7 +31,8 @@ public sealed class ApiTestFactory : WebApplicationFactory<Program>
                 ["Jwt:Issuer"] = TestAuthConfiguration.Issuer,
                 ["Jwt:Audience"] = TestAuthConfiguration.Audience,
                 ["Jwt:SigningKey"] = TestAuthConfiguration.SigningKey,
-                ["Jwt:AccessTokenExpirationMinutes"] = "15"
+                ["Jwt:AccessTokenExpirationMinutes"] = "15",
+                ["Cors:AllowedOrigins:0"] = "https://frontend.test"
             });
         });
 
