@@ -19,6 +19,7 @@ Deployment and release documentation; not application design, not operations run
 - [Environments and Configuration](02-environments-and-configuration.md)
 - [Migration Guide](03-migration-guide.md)
 - [OpenAPI Usage](04-openapi-usage.md)
+- [External Authentication](05-external-authentication.md)
 
 ## Dependencies
 - **Input:** [11 Testing](../11-testing/README.md) sign-off; architecture/design for topology.

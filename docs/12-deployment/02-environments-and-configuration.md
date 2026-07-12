@@ -20,6 +20,10 @@ ASP.NET Core environment variables use `__` as the section separator.
 | `Cors__AllowedOrigins__0` | none | Exact trusted frontend origin; add indexed entries for more origins. |
 | `ContentModeration__ModeratorUserIds__0` | none | User ID authorized for moderation commands. |
 | `RequestLimits__MaxBodyBytes` | `1048576` | Kestrel request-body maximum. |
+| `ExternalAuth__Google__ClientId` | none | Google OAuth client ID for ID token audience validation. |
+| `ExternalAuth__Facebook__AppId` | none | Facebook application ID. |
+| `ExternalAuth__Facebook__AppSecret` | none | Facebook application secret for token validation. |
+| `ExternalAuth__Apple__ClientId` | none | Apple Services ID for identity token audience validation. |
 | `AllowedHosts` | `*` | Host filtering; restrict to deployment hostnames in production. |
 
 The checked-in signing key is development-only. Production secrets must come from environment variables or a secret provider and must not be committed.

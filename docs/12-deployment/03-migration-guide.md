@@ -3,7 +3,7 @@
 Cluely uses two EF Core contexts against the configured SQL connection:
 
 - `CluelyDbContext`: rooms, content snapshots, share grants, and content command outcomes.
-- `IdentityDbContext`: users, refresh tokens, and participant bindings.
+- `IdentityDbContext`: users, refresh tokens, participant bindings, and external logins.
 
 Apply migrations from the repository root:
 
@@ -22,6 +22,8 @@ dotnet ef database update \
 ## RC1 migration state
 
 `20260712141831_AddContentCommandOutcomes` must be applied before accepting publish traffic. It stores deterministic publish results keyed by `Idempotency-Key`; omitting it causes publish requests to fail.
+
+`AddExternalLogins` must be applied before enabling social login. It creates the `ExternalLogins` table, makes `Users.PasswordHash` nullable for provider-only accounts, and enforces unique `(Provider, ProviderUserId)` links.
 
 ## Production procedure
 
