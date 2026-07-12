@@ -480,9 +480,9 @@ public sealed class Dictionary : AggregateRoot<DictionaryId>
         IncrementVersion();
     }
 
-    public void RetireVersion(OwnerId actor, VersionId versionId)
+    public void RetireVersion(ModeratorId moderator, VersionId versionId)
     {
-        EnsureOwner(actor);
+        ArgumentNullException.ThrowIfNull(moderator);
 
         var version = GetRequiredVersion(versionId);
         if (version.LifecycleState == VersionLifecycleState.Retired)

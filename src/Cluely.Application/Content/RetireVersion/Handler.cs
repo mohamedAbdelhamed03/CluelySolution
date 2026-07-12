@@ -13,17 +13,20 @@ public sealed class RetireVersionHandler
     private readonly IDictionaryRepository _dictionaryRepository;
     private readonly IDomainEventPublisher _eventPublisher;
     private readonly ICurrentUserAccessor _currentUserAccessor;
+    private readonly IContentModeratorAccessor _moderatorAccessor;
     private readonly IValidator<RetireVersionCommand> _validator;
 
     public RetireVersionHandler(
         IDictionaryRepository dictionaryRepository,
         IDomainEventPublisher eventPublisher,
         ICurrentUserAccessor currentUserAccessor,
+        IContentModeratorAccessor moderatorAccessor,
         IValidator<RetireVersionCommand> validator)
     {
         _dictionaryRepository = dictionaryRepository;
         _eventPublisher = eventPublisher;
         _currentUserAccessor = currentUserAccessor;
+        _moderatorAccessor = moderatorAccessor;
         _validator = validator;
     }
 
@@ -47,6 +50,13 @@ public sealed class RetireVersionHandler
                 "Authentication is required."));
         }
 
+        if (!_moderatorAccessor.IsModerator)
+        {
+            return Result.Failure<RetireVersionResult>(new BusinessError(
+                "Forbidden",
+                "Moderator authorization is required."));
+        }
+
         var dictionaryId = DictionaryId.From(command.DictionaryId);
         var dictionary = await _dictionaryRepository.GetAsync(dictionaryId, cancellationToken);
         if (dictionary is null)
@@ -56,12 +66,12 @@ public sealed class RetireVersionHandler
                 "Dictionary not found."));
         }
 
-        var owner = OwnerId.From(userId);
+        var moderator = ModeratorId.From(userId);
         var versionId = VersionId.From(command.VersionId);
 
         try
         {
-            dictionary.RetireVersion(owner, versionId);
+            dictionary.RetireVersion(moderator, versionId);
         }
         catch (DomainException ex)
         {

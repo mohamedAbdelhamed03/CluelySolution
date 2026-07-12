@@ -147,29 +147,74 @@ public sealed class WorkflowHandlerTests
         _eventPublisher.PublishedEvents.OfType<VersionUnblocked>().Should().ContainSingle();
     }
 
-    // --- RetireVersion (owner) ---
+    // --- RetireVersion (moderator) ---
 
     [Fact]
-    public async Task RetireVersion_ByOwner_ShouldRetireAndClearCurrentPointer()
+    public async Task RetireVersion_ByModerator_ShouldRetireClearCurrentPointerAndEmitOneEvent()
     {
         var (dictionary, versionId) = SeedPublicPublishedVersion();
 
-        var handler = new RetireVersionHandler(_repository, _eventPublisher, _currentUser, new RetireVersionCommandValidator());
+        var handler = new RetireVersionHandler(_repository, _eventPublisher, _currentUser, _moderator, new RetireVersionCommandValidator());
         var result = await handler.HandleAsync(new RetireVersionCommand(dictionary.Id.Value, versionId.Value, Guid.NewGuid()));
 
         result.IsSuccess.Should().BeTrue();
         dictionary.GetVersion(versionId).LifecycleState.Should().Be(VersionLifecycleState.Retired);
         dictionary.CurrentVersionId.Should().BeNull();
+        _repository.UpdateCount.Should().Be(1);
         _eventPublisher.PublishedEvents.OfType<VersionRetired>().Should().ContainSingle();
     }
 
     [Fact]
-    public async Task RetireVersion_ByNonOwner_ShouldFailWithoutPersisting()
+    public async Task RetireVersion_ByNonModerator_ShouldBeForbiddenWithoutPersisting()
     {
         var (dictionary, versionId) = SeedPublicPublishedVersion();
-        _currentUser.UserId = Guid.NewGuid();
+        _moderator.IsModerator = false;
 
-        var handler = new RetireVersionHandler(_repository, _eventPublisher, _currentUser, new RetireVersionCommandValidator());
+        var handler = new RetireVersionHandler(_repository, _eventPublisher, _currentUser, _moderator, new RetireVersionCommandValidator());
+        var result = await handler.HandleAsync(new RetireVersionCommand(dictionary.Id.Value, versionId.Value, Guid.NewGuid()));
+
+        result.IsFailure.Should().BeTrue();
+        result.Error!.Code.Should().Be("Forbidden");
+        _repository.UpdateCount.Should().Be(0);
+        _eventPublisher.PublishedEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task RetireVersion_ByOwnerWithoutModeratorPrivilege_ShouldBeForbidden()
+    {
+        // The current user owns the dictionary but is not a moderator: ownership must no longer suffice.
+        var (dictionary, versionId) = SeedPublicPublishedVersion();
+        _moderator.IsModerator = false;
+
+        var handler = new RetireVersionHandler(_repository, _eventPublisher, _currentUser, _moderator, new RetireVersionCommandValidator());
+        var result = await handler.HandleAsync(new RetireVersionCommand(dictionary.Id.Value, versionId.Value, Guid.NewGuid()));
+
+        result.IsFailure.Should().BeTrue();
+        result.Error!.Code.Should().Be("Forbidden");
+        dictionary.GetVersion(versionId).LifecycleState.Should().Be(VersionLifecycleState.Published);
+    }
+
+    [Fact]
+    public async Task RetireVersion_Unauthenticated_ShouldFail()
+    {
+        var (dictionary, versionId) = SeedPublicPublishedVersion();
+        _currentUser.UserId = null;
+
+        var handler = new RetireVersionHandler(_repository, _eventPublisher, _currentUser, _moderator, new RetireVersionCommandValidator());
+        var result = await handler.HandleAsync(new RetireVersionCommand(dictionary.Id.Value, versionId.Value, Guid.NewGuid()));
+
+        result.IsFailure.Should().BeTrue();
+        result.Error!.Code.Should().Be("Unauthorized");
+    }
+
+    [Fact]
+    public async Task RetireVersion_AlreadyRetired_ShouldFailWithoutPersistingOrPublishing()
+    {
+        var (dictionary, versionId) = SeedPublicPublishedVersion();
+        dictionary.RetireVersion(ModeratorId.From(_currentUser.UserId!.Value), versionId);
+        dictionary.ClearPendingEvents();
+
+        var handler = new RetireVersionHandler(_repository, _eventPublisher, _currentUser, _moderator, new RetireVersionCommandValidator());
         var result = await handler.HandleAsync(new RetireVersionCommand(dictionary.Id.Value, versionId.Value, Guid.NewGuid()));
 
         result.IsFailure.Should().BeTrue();
@@ -182,7 +227,7 @@ public sealed class WorkflowHandlerTests
     [Fact]
     public async Task RetireVersion_MissingDictionary_ShouldFail()
     {
-        var handler = new RetireVersionHandler(_repository, _eventPublisher, _currentUser, new RetireVersionCommandValidator());
+        var handler = new RetireVersionHandler(_repository, _eventPublisher, _currentUser, _moderator, new RetireVersionCommandValidator());
         var result = await handler.HandleAsync(new RetireVersionCommand(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid()));
 
         result.IsFailure.Should().BeTrue();

@@ -270,7 +270,7 @@ public sealed class DictionaryTests
         var versionId = VersionId.New();
         DictionaryTestData.ValidateAndPublish(dictionary, owner, versionId, DateTime.UtcNow);
 
-        dictionary.RetireVersion(owner, versionId);
+        dictionary.RetireVersion(ModeratorId.From(Guid.NewGuid()), versionId);
 
         dictionary.GetVersion(versionId).LifecycleState.Should().Be(VersionLifecycleState.Retired);
         dictionary.CurrentVersionId.Should().BeNull();
