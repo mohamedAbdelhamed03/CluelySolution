@@ -90,6 +90,13 @@ public static class ApiResultMapper
             BusinessError { Code: "InvalidCredentials" } => StatusCodes.Status401Unauthorized,
             BusinessError { Code: "InvalidRefreshToken" } => StatusCodes.Status401Unauthorized,
             BusinessError { Code: "DuplicateEmail" } => StatusCodes.Status409Conflict,
+            BusinessError { Code: "Unauthorized" } => StatusCodes.Status401Unauthorized,
+            BusinessError { Code: "Forbidden" } => StatusCodes.Status403Forbidden,
+            BusinessError { Code: "DictionaryNotFound" } => StatusCodes.Status404NotFound,
+            BusinessError { Code: "NotOwnerException" } => StatusCodes.Status403Forbidden,
+            BusinessError { Code: "VersionNotFoundException" } => StatusCodes.Status404NotFound,
+            BusinessError { Code: "ShareGrantNotFoundException" } => StatusCodes.Status404NotFound,
+            BusinessError { Code: "WordNotFoundException" } => StatusCodes.Status404NotFound,
             BusinessError => StatusCodes.Status409Conflict,
             UnexpectedError => StatusCodes.Status500InternalServerError,
             _ => StatusCodes.Status500InternalServerError
