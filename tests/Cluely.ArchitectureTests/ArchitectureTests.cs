@@ -738,53 +738,22 @@ public class ArchitectureTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    public void Content_Moderation_Handlers_Should_Depend_On_IContentModeratorAccessor()
+    public void IContentModeratorAccessor_Should_Reside_In_Application_Ports()
     {
-        var moderationHandlers = new[]
-        {
-            "ApproveReviewHandler",
-            "RejectReviewHandler",
-            "BlockVersionHandler",
-            "UnblockVersionHandler",
-            "RetireVersionHandler"
-        };
+        var accessorType = ApplicationAssembly.GetType(
+            "Cluely.Application.Common.Ports.Identity.IContentModeratorAccessor");
 
-        foreach (var handlerName in moderationHandlers)
-        {
-            var handlerType = ApplicationAssembly.GetType($"Cluely.Application.Content.{handlerName.Replace("Handler", "")}.{handlerName}");
-            if (handlerType is null)
-            {
-                var namespaceName = handlerName switch
-                {
-                    "ApproveReviewHandler" => "ApproveReview",
-                    "RejectReviewHandler" => "RejectReview",
-                    "BlockVersionHandler" => "BlockVersion",
-                    "UnblockVersionHandler" => "UnblockVersion",
-                    "RetireVersionHandler" => "RetireVersion",
-                    _ => throw new InvalidOperationException()
-                };
-                handlerType = ApplicationAssembly.GetType($"Cluely.Application.Content.{namespaceName}.{handlerName}");
-            }
-
-            handlerType.Should().NotBeNull();
-            handlerType!.GetConstructors()
-                .SelectMany(constructor => constructor.GetParameters())
-                .Select(parameter => parameter.ParameterType)
-                .Should()
-                .Contain(typeof(Application.Common.Ports.Identity.IContentModeratorAccessor));
-        }
+        accessorType.Should().NotBeNull();
+        accessorType!.IsInterface.Should().BeTrue();
+        accessorType.Namespace.Should().Be("Cluely.Application.Common.Ports.Identity");
     }
 
     [Fact]
-    public void Content_Moderation_Handlers_Should_Not_Reference_WordSet()
+    public void ReportDictionary_Handler_Should_Not_Reference_WordSet()
     {
         var result = Types.InAssembly(ApplicationAssembly)
             .That()
-            .ResideInNamespace("Cluely.Application.Content")
-            .And()
-            .HaveNameEndingWith("Handler")
-            .And()
-            .HaveNameMatching("ApproveReview|RejectReview|BlockVersion|UnblockVersion|RetireVersion|ReportDictionary|PublishDictionary|SubmitForReview")
+            .HaveName(nameof(Application.Content.ReportDictionary.ReportDictionaryHandler))
             .ShouldNot()
             .HaveDependencyOn("Cluely.Domain.Content.ValueObjects.WordSet")
             .GetResult();

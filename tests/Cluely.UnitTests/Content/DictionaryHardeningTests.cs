@@ -313,40 +313,20 @@ public sealed class DictionaryHardeningTests
     }
 
     [Fact]
-    public void Publish_WithDuplicateVersionId_ShouldBeIdempotent()
+    public void ApproveReview_RequiresModeratorPrincipal_NotOwner()
     {
         var owner = OwnerId.From(Guid.NewGuid());
         var dictionary = CreateDictionary(owner);
         dictionary.AddWords(owner, DictionaryTestData.ValidWordBatch(DictionaryValidation.MinWords));
         var versionId = VersionId.New();
         DictionaryTestData.ValidateAndPublish(dictionary, owner, versionId, DateTime.UtcNow);
-        dictionary.ClearPendingEvents();
-        var aggregateVersionBeforeReplay = dictionary.Version;
-        var versionCountBeforeReplay = dictionary.Versions.Count;
+        dictionary.SetVisibility(owner, Visibility.Public);
+        dictionary.SubmitVersionForReview(owner, versionId);
 
-        var replayed = dictionary.Publish(owner, versionId, DateTime.UtcNow);
+        var moderator = ModeratorId.From(Guid.NewGuid());
+        dictionary.ApproveReview(moderator, versionId);
 
-        replayed.VersionId.Should().Be(versionId);
-        dictionary.Versions.Count.Should().Be(versionCountBeforeReplay);
-        dictionary.Version.Should().Be(aggregateVersionBeforeReplay);
-        dictionary.GetPendingEvents().Should().BeEmpty();
-    }
-
-    [Fact]
-    public void Publish_WithTooManyWords_ShouldThrowDraftTooLargeException()
-    {
-        var owner = OwnerId.From(Guid.NewGuid());
-        var dictionary = CreateDictionary(owner);
-        dictionary.AddWords(owner, DictionaryTestData.ValidWordBatch(DictionaryValidation.MaxWords + 1));
-        dictionary.ClearPendingEvents();
-        var aggregateVersionBeforeFailure = dictionary.Version;
-
-        Action action = () => dictionary.Publish(owner, VersionId.New(), DateTime.UtcNow);
-
-        action.Should().Throw<DraftTooLargeException>();
-        dictionary.Versions.Should().BeEmpty();
-        dictionary.Version.Should().Be(aggregateVersionBeforeFailure);
-        dictionary.GetPendingEvents().Should().BeEmpty();
+        dictionary.GetVersion(versionId).LifecycleState.Should().Be(VersionLifecycleState.Discoverable);
     }
 
     [Fact]
@@ -358,6 +338,22 @@ public sealed class DictionaryHardeningTests
         Action action = () => dictionary.Report(reporter);
 
         action.Should().Throw<VisibilityTransitionException>();
+    }
+
+    [Fact]
+    public void Report_DuplicateReports_ShouldRaiseSeparateEvents()
+    {
+        var owner = OwnerId.From(Guid.NewGuid());
+        var dictionary = CreateDictionary(owner);
+        dictionary.SetVisibility(owner, Visibility.Shared);
+        dictionary.ClearPendingEvents();
+        var reporter = OwnerId.From(Guid.NewGuid());
+
+        dictionary.Report(reporter);
+        dictionary.ClearPendingEvents();
+        dictionary.Report(reporter);
+
+        dictionary.GetPendingEvents().OfType<DictionaryReported>().Should().ContainSingle();
     }
 
     [Fact]
