@@ -377,15 +377,4 @@ public sealed class DictionaryTests
             ContentType.User,
             DictionaryTestData.DefaultMetadata());
     }
-
-    private static Dictionary CreatePublicDictionaryWithPendingReview(OwnerId owner)
-    {
-        var dictionary = CreateDictionary(owner);
-        dictionary.AddWords(owner, DictionaryTestData.ValidWordBatch(25));
-        var versionId = VersionId.New();
-        DictionaryTestData.ValidateAndPublish(dictionary, owner, versionId, DateTime.UtcNow);
-        dictionary.SetVisibility(owner, Visibility.Public);
-        dictionary.SubmitVersionForReview(owner, versionId);
-        return dictionary;
-    }
 }

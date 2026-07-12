@@ -43,6 +43,51 @@ public class ArchitectureTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    public void Content_Domain_Events_Should_Implement_IContentDomainEvent()
+    {
+        var contentEventTypes = DomainAssembly.GetTypes()
+            .Where(type => type.Namespace == "Cluely.Domain.Content.Events"
+                && type is { IsClass: true, IsAbstract: false })
+            .ToList();
+
+        contentEventTypes.Should().NotBeEmpty();
+        contentEventTypes.Should().OnlyContain(type =>
+            typeof(Domain.Common.IContentDomainEvent).IsAssignableFrom(type));
+    }
+
+    [Fact]
+    public void Application_Should_Not_Depend_On_Content_Entities()
+    {
+        var result = Types.InAssembly(ApplicationAssembly)
+            .ShouldNot()
+            .HaveDependencyOn("Cluely.Domain.Content.Entities")
+            .GetResult();
+
+        result.IsSuccessful.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Content_Types_Should_Not_Expose_Mutable_Collections()
+    {
+        var mutableCollectionDefinitions = new[]
+        {
+            typeof(List<>), typeof(IList<>), typeof(ICollection<>),
+            typeof(HashSet<>), typeof(ISet<>), typeof(Dictionary<,>), typeof(IDictionary<,>)
+        };
+
+        var offenders = DomainAssembly.GetTypes()
+            .Where(type => type.Namespace?.StartsWith("Cluely.Domain.Content", StringComparison.Ordinal) == true)
+            .SelectMany(type => type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly))
+            .Where(property => property.PropertyType.IsArray
+                || (property.PropertyType.IsGenericType
+                    && mutableCollectionDefinitions.Contains(property.PropertyType.GetGenericTypeDefinition())))
+            .Select(property => $"{property.DeclaringType!.Name}.{property.Name}")
+            .ToList();
+
+        offenders.Should().BeEmpty();
+    }
+
+    [Fact]
     public void Domain_Should_Not_Have_Dependency_On_AspNetCore()
     {
         var result = Types.InAssembly(DomainAssembly)
