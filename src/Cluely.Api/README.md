@@ -30,6 +30,9 @@ Protected endpoints require a JWT bearer token.
 |--------|------|------|-------------|
 | POST | `/api/auth/register` | Anonymous | Create account |
 | POST | `/api/auth/login` | Anonymous | Obtain access + refresh tokens |
+| POST | `/api/auth/external` | Anonymous | Social login via Google, Facebook, or Apple |
+| POST | `/api/auth/external/link` | Bearer | Link an external provider to the current account |
+| DELETE | `/api/auth/external/{provider}` | Bearer | Unlink an external provider |
 | POST | `/api/auth/refresh` | Anonymous | Rotate refresh token |
 | POST | `/api/auth/logout` | Anonymous | Revoke refresh token |
 | GET | `/api/auth/me` | Bearer | Current user profile |

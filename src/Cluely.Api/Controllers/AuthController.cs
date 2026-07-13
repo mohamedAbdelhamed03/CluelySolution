@@ -2,11 +2,14 @@ using Cluely.Api.Contracts.Requests;
 using Cluely.Api.Contracts.Responses;
 using Cluely.Api.Infrastructure;
 using Cluely.Api.Mapping;
+using Cluely.Application.Auth.ExternalLogin;
 using Cluely.Application.Auth.GetCurrentUser;
+using Cluely.Application.Auth.LinkExternalLogin;
 using Cluely.Application.Auth.Login;
 using Cluely.Application.Auth.Logout;
 using Cluely.Application.Auth.Refresh;
 using Cluely.Application.Auth.Register;
+using Cluely.Application.Auth.UnlinkExternalLogin;
 using Cluely.Application.Common.Ports.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
@@ -26,6 +29,9 @@ public sealed class AuthController : ControllerBase
 {
     private readonly RegisterUserHandler _registerUserHandler;
     private readonly LoginUserHandler _loginUserHandler;
+    private readonly ExternalLoginHandler _externalLoginHandler;
+    private readonly LinkExternalLoginHandler _linkExternalLoginHandler;
+    private readonly UnlinkExternalLoginHandler _unlinkExternalLoginHandler;
     private readonly RefreshTokenHandler _refreshTokenHandler;
     private readonly LogoutUserHandler _logoutUserHandler;
     private readonly GetCurrentUserHandler _getCurrentUserHandler;
@@ -34,6 +40,9 @@ public sealed class AuthController : ControllerBase
     public AuthController(
         RegisterUserHandler registerUserHandler,
         LoginUserHandler loginUserHandler,
+        ExternalLoginHandler externalLoginHandler,
+        LinkExternalLoginHandler linkExternalLoginHandler,
+        UnlinkExternalLoginHandler unlinkExternalLoginHandler,
         RefreshTokenHandler refreshTokenHandler,
         LogoutUserHandler logoutUserHandler,
         GetCurrentUserHandler getCurrentUserHandler,
@@ -41,6 +50,9 @@ public sealed class AuthController : ControllerBase
     {
         _registerUserHandler = registerUserHandler;
         _loginUserHandler = loginUserHandler;
+        _externalLoginHandler = externalLoginHandler;
+        _linkExternalLoginHandler = linkExternalLoginHandler;
+        _unlinkExternalLoginHandler = unlinkExternalLoginHandler;
         _refreshTokenHandler = refreshTokenHandler;
         _logoutUserHandler = logoutUserHandler;
         _getCurrentUserHandler = getCurrentUserHandler;
@@ -84,6 +96,72 @@ public sealed class AuthController : ControllerBase
             value.AccessTokenExpiresAt,
             value.RefreshToken,
             value.RefreshTokenExpiresAt));
+    }
+
+    [AllowAnonymous]
+    [HttpPost("external")]
+    [ProducesResponseType(typeof(LoginUserResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status503ServiceUnavailable)]
+    public async Task<IActionResult> ExternalLogin(
+        [FromBody] ExternalLoginRequest request,
+        CancellationToken cancellationToken)
+    {
+        var correlationId = CorrelationIdAccessor.GetCorrelationId(HttpContext);
+        var result = await _externalLoginHandler.HandleAsync(
+            new ExternalLoginCommand(request.Provider, request.Token, correlationId),
+            cancellationToken);
+
+        return result.ToActionResult(this, value => new LoginUserResponse(
+            value.UserId,
+            value.Email,
+            value.AccessToken,
+            value.AccessTokenExpiresAt,
+            value.RefreshToken,
+            value.RefreshTokenExpiresAt));
+    }
+
+    [Authorize]
+    [HttpPost("external/link")]
+    [ProducesResponseType(typeof(LinkExternalLoginResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> LinkExternalLogin(
+        [FromBody] LinkExternalLoginRequest request,
+        CancellationToken cancellationToken)
+    {
+        var userId = _currentUserAccessor.UserId
+            ?? throw new UnauthorizedAccessException();
+
+        var correlationId = CorrelationIdAccessor.GetCorrelationId(HttpContext);
+        var result = await _linkExternalLoginHandler.HandleAsync(
+            new LinkExternalLoginCommand(userId, request.Provider, request.Token, correlationId),
+            cancellationToken);
+
+        return result.ToActionResult(this, value => new LinkExternalLoginResponse(value.Provider));
+    }
+
+    [Authorize]
+    [HttpDelete("external/{provider}")]
+    [ProducesResponseType(typeof(UnlinkExternalLoginResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> UnlinkExternalLogin(
+        string provider,
+        CancellationToken cancellationToken)
+    {
+        var userId = _currentUserAccessor.UserId
+            ?? throw new UnauthorizedAccessException();
+
+        var correlationId = CorrelationIdAccessor.GetCorrelationId(HttpContext);
+        var result = await _unlinkExternalLoginHandler.HandleAsync(
+            new UnlinkExternalLoginCommand(userId, provider, correlationId),
+            cancellationToken);
+
+        return result.ToActionResult(this, value => new UnlinkExternalLoginResponse(value.Provider));
     }
 
     [AllowAnonymous]

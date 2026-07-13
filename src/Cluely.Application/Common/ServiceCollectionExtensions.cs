@@ -1,8 +1,11 @@
+using Cluely.Application.Auth.ExternalLogin;
 using Cluely.Application.Auth.GetCurrentUser;
+using Cluely.Application.Auth.LinkExternalLogin;
 using Cluely.Application.Auth.Login;
 using Cluely.Application.Auth.Logout;
 using Cluely.Application.Auth.Refresh;
 using Cluely.Application.Auth.Register;
+using Cluely.Application.Auth.UnlinkExternalLogin;
 using Cluely.Application.Content.AddWord;
 using Cluely.Application.Content.ApproveReview;
 using Cluely.Application.Content.ArchiveDictionary;
@@ -71,6 +74,9 @@ public static class ServiceCollectionExtensions
 
         services.AddTransient<RegisterUserHandler>();
         services.AddTransient<LoginUserHandler>();
+        services.AddTransient<ExternalLoginHandler>();
+        services.AddTransient<LinkExternalLoginHandler>();
+        services.AddTransient<UnlinkExternalLoginHandler>();
         services.AddTransient<RefreshTokenHandler>();
         services.AddTransient<LogoutUserHandler>();
         services.AddTransient<GetCurrentUserHandler>();

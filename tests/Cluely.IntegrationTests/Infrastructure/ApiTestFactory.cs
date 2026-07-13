@@ -12,6 +12,7 @@ namespace Cluely.IntegrationTests.Infrastructure;
 public sealed class ApiTestFactory : WebApplicationFactory<Program>
 {
     private readonly string _connectionString;
+    public TestExternalIdentityProviderRegistry ExternalProviders { get; } = new();
 
     public ApiTestFactory(string connectionString)
     {
@@ -49,6 +50,16 @@ public sealed class ApiTestFactory : WebApplicationFactory<Program>
             }
 
             services.AddScoped<IContentModeratorAccessor, TestContentModeratorAccessor>();
+
+            var providerRegistryDescriptor = services.SingleOrDefault(
+                service => service.ServiceType == typeof(IExternalIdentityProviderRegistry));
+            if (providerRegistryDescriptor is not null)
+            {
+                services.Remove(providerRegistryDescriptor);
+            }
+
+            services.AddSingleton(ExternalProviders);
+            services.AddSingleton<IExternalIdentityProviderRegistry>(sp => sp.GetRequiredService<TestExternalIdentityProviderRegistry>());
         });
     }
 
